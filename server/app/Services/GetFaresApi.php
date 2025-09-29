@@ -55,12 +55,19 @@ class GetFaresApi
         return $token;
     }
 
-    public function searchFlights(array $data)
+  public function searchFlights(array $data)
 {
-    $token = $this->getToken();
+    $startTime = microtime(true);
 
-    // Use originDestinations from request directly
-    $originDestinations = array_map(function($leg) {
+    // 1️⃣ Token fetch timing
+    $tokenStart = microtime(true);
+    $token = $this->getToken();
+    $tokenDuration = microtime(true) - $tokenStart;
+    \Log::info("Time to get token: {$tokenDuration}s");
+
+    // 2️⃣ Payload preparation timing
+    $payloadStart = microtime(true);
+    $originDestinations = array_map(function ($leg) {
         return [
             'departureDateTime' => $leg['departureDateTime'],
             'origin' => $leg['origin'],
@@ -77,30 +84,46 @@ class GetFaresApi
         'CabinPreferenceType' => 'Preferred',
         'stopOver' => 'None',
         'includecarrier' => '',
-        'IsBrandFareEnable' => true,
-        'airTravelType' => match($data['journeyType']) {
+        'airTravelType' => match ($data['journeyType']) {
             1 => 'Oneway',
             2 => 'RoundTrip',
             default => 'multi'
         },
         'includeBaggage' => true,
         'nationality' => '',
-        'includeMiniRules' => true,
+        'includeMiniRules' => false,
         'directOnly' => $data['directOnly']
     ];
+    $payloadDuration = microtime(true) - $payloadStart;
+    \Log::info("Time to prepare payload: {$payloadDuration}s");
 
-    $response = Http::withToken($token)
-        ->post($this->baseUrl . 'Flights/Search/v1', $payload);
+    $cacheKey = 'search_' . md5(json_encode($payload));
 
-    if (!$response->ok()) {
-        throw new \Exception($response->body(), $response->status());
-    }
+    // 3️⃣ Cache / API timing
+    $cacheStart = microtime(true);
+    $results = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($token, $payload) {
+        $apiStart = microtime(true);
+        $response = Http::withToken($token)
+            ->retry(2, 200)
+            ->timeout(25) // increase slightly if API can take long
+            ->post($this->baseUrl . 'Flights/Search/v1', $payload);
+        $apiDuration = microtime(true) - $apiStart;
+        \Log::info("Time for API call: {$apiDuration}s");
 
-    $results = $response->json();
-    $flights = $results['flights'] ?? [];
+        if (!$response->ok()) {
+            throw new \Exception($response->body(), $response->status());
+        }
 
-    if (!empty($flights)) {
-        // Enrich flights with airline names and seat info
+        return $response->json();
+    });
+    $cacheDuration = microtime(true) - $cacheStart;
+    \Log::info("Total time including cache lookup: {$cacheDuration}s");
+
+    // 4️⃣ Enrichment timing
+    if (!empty($results['flights'])) {
+        $enrichStart = microtime(true);
+        $flights = $results['flights'];
+
         $airlineCodes = collect($flights)->pluck('airline')->unique();
         $airlines = Airline::whereIn('Iata_code', $airlineCodes)->get();
         $airlineMap = $airlines->pluck('Airline_name', 'Iata_code');
@@ -120,13 +143,12 @@ class GetFaresApi
         }
 
         $results['flights'] = $flights;
+        $enrichDuration = microtime(true) - $enrichStart;
+        \Log::info("Time to enrich flights: {$enrichDuration}s");
     }
 
-    \Log::info('Search API response', [
-        'params' => $payload,
-        'status' => $response->status(),
-        'body' => $response->body()
-    ]);
+    $totalDuration = microtime(true) - $startTime;
+    \Log::info("Total searchFlights duration: {$totalDuration}s");
 
     return $results;
 }
@@ -134,7 +156,11 @@ class GetFaresApi
     // Revalidation method
 public function revalidate(array $payload)
 {
+    $startTime = microtime(true);
+
     $token = $this->getToken();
+    $afterToken = microtime(true) - $startTime;
+    \Log::info("Time to get token in revalidate: {$afterToken}s");
 
     // Ensure purchaseIds exists and is an array
     if (!isset($payload['purchaseIds']) || !is_array($payload['purchaseIds']) || empty($payload['purchaseIds'])) {
@@ -148,32 +174,38 @@ public function revalidate(array $payload)
         throw new \InvalidArgumentException('traceId is required.', 400);
     }
 
-    // Log payload before sending
-    \Log::info('Revalidation API request payload', $payload);
+    // Create a unique cache key based on traceId + purchaseIds
+    $cacheKey = 'revalidate_' . md5($payload['traceId'] . implode(',', $payload['purchaseIds']));
 
-    try {
-        $response = Http::withToken($token)
-            ->timeout(30) // Add timeout to prevent hanging
-            ->post($this->baseUrl . 'Flights/Revalidation/v1', $payload);
+    return Cache::remember($cacheKey, now()->addMinutes(2), function () use ($token, $payload, $startTime) {
 
-        // Log response details
-        \Log::info('Revalidation API response', [
-            'status' => $response->status(),
-            'body' => $response->body()
-        ]);
+        $apiStart = microtime(true);
+        try {
+            $response = Http::withToken($token)
+                ->retry(2, 200)
+                ->timeout(15)
+                ->post($this->baseUrl . 'Flights/Revalidation/v1', $payload);
 
-        if (!$response->ok()) {
-            $errorBody = $response->json();
-            $errorMessage = $errorBody['message'] ?? $response->body();
-            \Log::error('External API error', ['status' => $response->status(), 'error' => $errorBody]);
-            throw new \Exception('Failed to revalidate fares: ' . $errorMessage, $response->status());
+            $apiDuration = microtime(true) - $apiStart;
+            \Log::info("Time for revalidation API call / cache lookup: {$apiDuration}s");
+
+
+            if (!$response->ok()) {
+                $errorBody = $response->json();
+                $errorMessage = $errorBody['message'] ?? $response->body();
+                \Log::error('External API error', ['status' => $response->status(), 'error' => $errorBody]);
+                throw new \Exception('Failed to revalidate fares: ' . $errorMessage, $response->status());
+            }
+
+            $totalDuration = microtime(true) - $startTime;
+            \Log::info("Total revalidate duration including token and cache: {$totalDuration}s");
+
+            return $response->json();
+        } catch (\Illuminate\Http\Client\RequestException $e) {
+            \Log::error('External API request failed', ['error' => $e->getMessage()]);
+            throw new \Exception('Failed to connect to the revalidation service: ' . $e->getMessage(), 503);
         }
-
-        return $response->json();
-    } catch (\Illuminate\Http\Client\RequestException $e) {
-        \Log::error('External API request failed', ['error' => $e->getMessage()]);
-        throw new \Exception('Failed to connect to the revalidation service: ' . $e->getMessage(), 503);
-    }
+    });
 }
 
 

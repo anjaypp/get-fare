@@ -32,7 +32,6 @@ public function revalidate(Request $request, GetFaresApi $api)
 {
     try {
         $revalidate = $api->revalidate($request->all());
-        \Log::info('Controller response', ['data' => $revalidate]);
         return response()->json($revalidate);
     } catch (\InvalidArgumentException $e) {
         \Log::error('Validation error', ['error' => $e->getMessage()]);

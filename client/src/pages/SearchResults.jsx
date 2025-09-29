@@ -21,7 +21,6 @@ const SearchResults = () => {
       setLoading(true);
       setLoadingMessage("Checking fare availability...");
 
-      console.log(flight);
 
       const response = await axiosClient.post("/flights/revalidate", {
         traceId: results.traceId,
