@@ -7,7 +7,6 @@ const AutocompleteSelect = ({
   type,
   onSelect,
   placeholder,
-  defaultItem = null,
   value, // Current selected value
 }) => {
   const [query, setQuery] = useState("");
@@ -19,19 +18,8 @@ const AutocompleteSelect = ({
 
   // Initialize component with default value
   useEffect(() => {
-    if (value?.code && !selectedItem) {
-      // If we have a code but no full item data, fetch it or create a basic item
-      if (value.city && value.name) {
-        setSelectedItem(value);
-      } else {
-        // Create a temporary item with just the code for display
-        setSelectedItem({
-          code: value.code,
-          city: value.city || value.code,
-          name: value.name || value.code,
-          country: value.country || ""
-        });
-      }
+    if (value && value !== selectedItem) {
+      setSelectedItem(value);
     }
   }, [value, selectedItem]);
 

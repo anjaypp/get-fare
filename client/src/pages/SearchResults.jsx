@@ -1,12 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axiosClient from "../../axios-client";
-import FlightCard from "../components/FlightCard";
+const FlightCard = React.lazy(() => import('../components/FlightCard'));
 import toast, { Toaster } from "react-hot-toast";
 
 const SearchResults = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [filter, setFilter] = useState("all");
   const { results } = location.state || {};
 
   const [loading, setLoading] = useState(false);
@@ -21,14 +22,13 @@ const SearchResults = () => {
       setLoading(true);
       setLoadingMessage("Checking fare availability...");
 
-
       const response = await axiosClient.post("/flights/revalidate", {
         traceId: results.traceId,
-        purchaseIds: [String(purchaseId)]
+        purchaseIds: [String(purchaseId)],
       });
 
       console.log(purchaseId);
-      
+
       const revalidation = response.data;
 
       // Defensive check
@@ -50,7 +50,7 @@ const SearchResults = () => {
       }
 
       navigate("/flight-review", {
-        state: { revalidation, selectedFlight: flight }
+        state: { revalidation, selectedFlight: flight, purchaseId },
       });
     } catch (error) {
       if (error.response) {
@@ -65,12 +65,19 @@ const SearchResults = () => {
     }
   };
 
-  // Flatten flights only if needed
   const allFlights = Array.isArray(results.flights[0])
     ? results.flights.flat()
     : results.flights;
 
-  const flightsToShow = allFlights.filter((f) => f.hasSeats ?? true);
+  // Apply filter
+  const filteredFlights = allFlights.filter((flight) => {
+    if (filter === "all") return true;
+    if (filter === "direct") return flight.isDirect;
+    if (filter === "connecting") return !flight.isDirect;
+    return true;
+  });
+
+  const flightsToShow = filteredFlights;
 
   return (
     <div className="relative max-w-4xl mx-auto mt-2">
@@ -79,6 +86,19 @@ const SearchResults = () => {
       <h2 className="text-2xl font-bold mb-4">
         Search Results ({flightsToShow.length})
       </h2>
+
+      <div className="mb-4">
+        <label className="mr-2 font-medium">Show:</label>
+        <select
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          className="border rounded px-3 py-1"
+        >
+          <option value="all">All Flights</option>
+          <option value="direct">Direct Flights</option>
+          <option value="connecting">Connecting Flights</option>
+        </select>
+      </div>
 
       {flightsToShow.length > 0 ? (
         flightsToShow.map((flight, idx) => (

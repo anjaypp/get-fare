@@ -37,8 +37,8 @@ export default function SearchFlight() {
     oneWeekFromNow.setDate(today.getDate() + 7);
 
     return {
-      origin: "DEL",
-      destination: "JFK",
+      origin: null, // Store full airport object
+      destination: null, // Store full airport object
       departure: formatDateISO(today),
       returnDate: formatDateISO(oneWeekFromNow),
       adults: 1,
@@ -92,8 +92,8 @@ export default function SearchFlight() {
       // Build originDestinations
       let originDestinations = [
         {
-          origin: formData.origin.toLowerCase(),
-          destination: formData.destination.toLowerCase(),
+          origin: formData.origin?.code?.toLowerCase() || "",
+          destination: formData.destination?.code?.toLowerCase() || "",
           departureDateTime: formData.departure
         }
       ];
@@ -101,8 +101,8 @@ export default function SearchFlight() {
       // Add return leg for round-trip
       if (journeyType === 2 && formData.returnDate) {
         originDestinations.push({
-          origin: formData.destination.toLowerCase(),
-          destination: formData.origin.toLowerCase(),
+          origin: formData.destination?.code?.toLowerCase() || "",
+          destination: formData.origin?.code?.toLowerCase() || "",
           departureDateTime: formData.returnDate
         });
       }
@@ -132,21 +132,21 @@ export default function SearchFlight() {
   };
 
   return (
-    <div className="min-h-screen flex justify-center p-6">
-      <div className="bg-white w-full max-w-5xl h-fit rounded-2xl shadow-xl p-6">
+    <div className="min-h-screen flex justify-center p-12">
+      <div className="bg-white w-full max-w-6xl h-fit rounded-2xl shadow p-6">
         {/* Journey Type Tabs */}
-        <div className="flex gap-4 mb-6 justify-center">
+        <div className="flex gap-4 mb-6">
           {[
             { id: 1, label: "One Way" },
             { id: 2, label: "Round Trip" },
-            { id: 3, label: "Multi City" }
+            { id: 3, label: "Multi City" },
           ].map((opt) => (
             <button
               key={opt.id}
               onClick={() => setJourneyType(opt.id)}
-              className={`px-5 py-2 rounded-full font-medium cursor-pointer ${
+              className={`px-6 py-2 rounded-full font-medium border transition ${
                 journeyType === opt.id
-                  ? "bg-red-500 text-white"
+                  ? "bg-indigo-900 text-white"
                   : "bg-gray-100 text-gray-700"
               }`}
             >
@@ -156,38 +156,44 @@ export default function SearchFlight() {
         </div>
 
         {/* Search Form */}
-        <form onSubmit={handleSubmit} className="grid grid-cols-4 gap-4">
+        <form onSubmit={handleSubmit} className={`grid ${journeyType === 1 || journeyType === 2 ? "grid-cols-5" : "grid-cols-4"}`}>
           {/* Origin & Destination */}
-          <div className="col-span-2 flex items-center space-x-2">
-            <div className="flex-1 bg-slate-100 p-2 rounded-lg">
-              <label className="text-xs text-gray-500">From</label>
+          <div className="col-span-2 relative flex items-center space-x-2">
+            <div className="flex-1 rounded-l-2xl  p-4 border-1 border-gray-300">
+              <label className="text-xs font-medium text-indigo-900">FROM</label>
               <AutocompleteSelect
+                key={`origin-${formData.origin?.code || 'empty'}`}
                 type="airport"
                 placeholder=""
+                value={formData.origin}
                 onSelect={(item) => {
                   setFormData((prev) => ({
                     ...prev,
-                    origin: item?.code || ""
+                    origin: item // Store full object
                   }));
                 }}
               />
             </div>
             <button
-              type="button"
-              onClick={handleSwap}
-              className="p-2 rounded-full bg-white shadow hover:bg-slate-100 transition"
-            >
-              <HiArrowsRightLeft className="h-6 w-6 text-blue-500" />
-            </button>
-            <div className="flex-1 bg-slate-100 p-2 rounded-lg">
-              <label className="text-xs text-gray-500">To</label>
+                type="button"
+                onClick={handleSwap}
+                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-full shadow-md p-3 z-10 transition-colors"
+              >
+                <HiArrowsRightLeft className="h-5 w-5 text-yellow-500" />
+              </button>
+
+
+            <div className="flex-1  p-4 border-1 border-gray-300">
+              <label className="text-xs font-medium text text-indigo-900">TO</label>
               <AutocompleteSelect
+                key={`destination-${formData.destination?.code || 'empty'}`}
                 type="airport"
                 placeholder=""
+                value={formData.destination}
                 onSelect={(item) => {
                   setFormData((prev) => ({
                     ...prev,
-                    destination: item?.code || ""
+                    destination: item // Store full object
                   }));
                 }}
               />
@@ -195,15 +201,18 @@ export default function SearchFlight() {
           </div>
 
           {/* Departure Date */}
+          <div className="p-2 border-t-1 border-b-1 border-gray-300">
           <DatePicker
             selected={new Date(formData.departure)}
             onChange={handleDepartureChange}
             withPortal
-            customInput={<CustomDateInput label="Departure" />}
+            customInput={<CustomDateInput label="DEPARTURE" />}
           />
+          </div>
 
           {/* Return Date (Only for Round Trip) */}
           {journeyType === 2 && (
+            <div className="p-2 border-1 border-gray-300">
             <DatePicker
               selected={
                 formData.returnDate ? new Date(formData.returnDate) : null
@@ -211,16 +220,27 @@ export default function SearchFlight() {
               onChange={handleReturnChange}
               minDate={new Date(formData.departure)}
               withPortal
-              customInput={<CustomDateInput label="Return" />}
+              customInput={<CustomDateInput label="RETURN" />}
             />
+            </div>
           )}
+
+          {journeyType === 1 && (
+              <div className="flex-1 p-2 border-1 border-gray-300">
+                <label className="text-xs font-medium text-indigo-900">RETURN</label>
+                <p>
+                  Book a roundtrip to save more
+                </p>
+              </div>
+            )}
+
 
           {/* Travellers & Cabin */}
           <div
             ref={travellerRef}
-            className="col-span-1 relative bg-slate-100 p-2 rounded-lg"
+            className="col-span-1 relative  p-2 border-t-1 border-b-1 border-r-1 border-gray-300 rounded-r-2xl"
           >
-            <label className="text-xs text-gray-500">Travellers & Class</label>
+            <label className="text-xs font-medium text-indigo-900">TRAVELLERS & CLASS</label>
             <div
               onClick={() => setShowTravellerDialog((prev) => !prev)}
               className="cursor-pointer font-semibold py-2"
@@ -287,7 +307,7 @@ export default function SearchFlight() {
                   <button
                     type="button"
                     onClick={() => setShowTravellerDialog(false)}
-                    className="bg-red-500 text-white px-4 py-1 rounded"
+                    className="bg-indigo-900 text-white px-4 py-1 rounded"
                   >
                     Done
                   </button>
@@ -311,11 +331,11 @@ export default function SearchFlight() {
           </div>
 
           {/* Search Button */}
-          <div className="col-span-5 flex justify-center mt-4">
+          <div className="col-span-5 flex justify-end mt-4">
             <button
               type="submit"
               disabled={loading}
-              className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg flex items-center gap-2 font-semibold"
+              className="bg-indigo-900 hover:bg-indigo-950 text-white px-6 py-3 rounded-lg flex items-center gap-2 font-semibold"
             >
               <FaSearch /> {loading ? "Searching..." : "Search"}
             </button>

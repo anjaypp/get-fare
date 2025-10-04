@@ -6,7 +6,7 @@ import PassengerForm from "../components/PassengerForm";
 const RevalidationPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { revalidation, selectedFlight } = location.state || {};
+  const { revalidation, purchaseId } = location.state || {};
 
   // Collapsible sections state
   const [isBaggageOpen, setIsBaggageOpen] = useState(false);
@@ -155,14 +155,16 @@ const RevalidationPage = () => {
       return;
     }
 
+    console.log(purchaseId);
+
     const payload = {
       traceId: revalidation.traceId,
-      purchaseIds: [selectedFlight.fareGroups?.[0]?.purchaseId],
+      purchaseIds: [purchaseId],
       isHold: false,
       passengers: passengerData.passengers
     };
 
-    console.log("The response to booking:", payload);
+    console.log("The request to booking:", payload);
     const res = await axiosClient.post("/flights/booking", payload);
     console.log(res.data);
 

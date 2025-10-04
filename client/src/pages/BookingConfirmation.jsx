@@ -127,6 +127,12 @@ const BookingConfirmation = ({ booking }) => {
           Booking Reference:{" "}
           <span className="font-mono text-blue-600">{bookingData.orderRefId}</span>
         </p>
+
+        <p className="mt-4 text-gray-500">
+          PNR: {" "}
+          <span className="font-mono text-blue-600">{bookingData.flights[0]?.pnr || 'Not available'}</span>
+          </p>
+
         {bookingData.createdOn && (
           <p className="text-sm text-gray-400 mt-2">
             Created: {formatDateTime(bookingData.createdOn)}
