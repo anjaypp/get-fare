@@ -28,7 +28,17 @@ class FlightController extends Controller
             'directOnly' => 'required|boolean',
         ]);
 
-        $results = $api->searchFlights($validated);
+        $payload = $request->only([
+            'journeyType',
+            'originDestinations',
+            'adultCount',
+            'childCount',
+            'infantCount',
+            'cabinClass',
+            'directOnly'
+        ]);
+
+        $results = $api->searchFlights($payload);
 
         return response()->json(['results' => $results]);
     }
@@ -38,10 +48,16 @@ public function revalidate(Request $request, GetFaresApi $api)
     $validated = $request->validate([
         'traceId'     => 'required|string',
         'purchaseIds' => 'required|array|min:1',
+        'purchaseIds.*' => 'required|string',
     ]);
 
+    $payload = [
+    'traceId' => $validated['traceId'],
+    'purchaseIds' => array_map('strval', $validated['purchaseIds']),
+    ];
+
     try {
-        $revalidate = $api->revalidate($validated);
+        $revalidate = $api->revalidate($payload);
         return response()->json($revalidate);
     } catch (\InvalidArgumentException $e) {
         \Log::error('Validation error', ['error' => $e->getMessage()]);
