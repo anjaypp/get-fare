@@ -157,8 +157,6 @@ public function booking(Request $request, GetFaresApi $api)
     // Step 5: Sanitize the payload
     $payload = $this->sanitizePayload($payload);
 
-    // Step 6: Log the payload for debugging
-    \Log::info('Booking Payload: ', $payload);
 
     try {
         // Step 7: Create PNR

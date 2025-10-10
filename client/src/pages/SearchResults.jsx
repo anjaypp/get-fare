@@ -2,7 +2,7 @@ import React, { useState, Suspense } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axiosClient from "../../axios-client";
 const FlightCard = React.lazy(() => import('../components/FlightCard'));
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 
 const SearchResults = () => {
   const location = useLocation();
@@ -30,6 +30,7 @@ const SearchResults = () => {
       console.log(purchaseId);
 
       const revalidation = response.data;
+      console.log("Revalidation data:", revalidation);
 
       // Defensive check
       if (!revalidation?.flights?.length) {
@@ -81,7 +82,7 @@ const SearchResults = () => {
 
   return (
     <div className="relative max-w-4xl mx-auto mt-2">
-      <Toaster position="top-center" reverseOrder={false} />
+  
 
       <h2 className="text-2xl font-bold mb-4">
         Search Results ({flightsToShow.length})

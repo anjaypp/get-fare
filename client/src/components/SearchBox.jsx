@@ -46,7 +46,7 @@ export default function SearchFlight() {
       infants: 0,
       travellers: 1,
       cabin: "Economy",
-      direct: false
+      direct: false,
     };
   });
 
@@ -55,7 +55,7 @@ export default function SearchFlight() {
     const { name, type, value, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
@@ -79,7 +79,7 @@ export default function SearchFlight() {
     setFormData((prev) => ({
       ...prev,
       origin: prev.destination,
-      destination: prev.origin
+      destination: prev.origin,
     }));
   };
 
@@ -94,8 +94,8 @@ export default function SearchFlight() {
         {
           origin: formData.origin?.code?.toLowerCase() || "",
           destination: formData.destination?.code?.toLowerCase() || "",
-          departureDateTime: formData.departure
-        }
+          departureDateTime: formData.departure,
+        },
       ];
 
       // Add return leg for round-trip
@@ -103,7 +103,7 @@ export default function SearchFlight() {
         originDestinations.push({
           origin: formData.destination?.code?.toLowerCase() || "",
           destination: formData.origin?.code?.toLowerCase() || "",
-          departureDateTime: formData.returnDate
+          departureDateTime: formData.returnDate,
         });
       }
 
@@ -116,7 +116,7 @@ export default function SearchFlight() {
         childCount: formData.children,
         infantCount: formData.infants,
         cabinClass: formData.cabin,
-        directOnly: formData.direct
+        directOnly: formData.direct,
       };
 
       const res = await axiosClient.post("/flights/search", payload);
@@ -144,7 +144,7 @@ export default function SearchFlight() {
             <button
               key={opt.id}
               onClick={() => setJourneyType(opt.id)}
-              className={`px-6 py-2 rounded-full font-medium border transition ${
+              className={`px-6 py-2 rounded-full font-medium border transition cursor-pointer ${
                 journeyType === opt.id
                   ? "bg-indigo-900 text-white"
                   : "bg-gray-100 text-gray-700"
@@ -156,44 +156,54 @@ export default function SearchFlight() {
         </div>
 
         {/* Search Form */}
-        <form onSubmit={handleSubmit} className={`grid ${journeyType === 1 || journeyType === 2 ? "grid-cols-5" : "grid-cols-4"}`}>
+        <form
+          onSubmit={handleSubmit}
+          className={`grid ${
+            journeyType === 1 || journeyType === 2
+              ? "grid-cols-5"
+              : "grid-cols-4"
+          }`}
+        >
           {/* Origin & Destination */}
           <div className="col-span-2 relative flex items-center space-x-2">
             <div className="flex-1 rounded-l-2xl  p-4 border-1 border-gray-300">
-              <label className="text-xs font-medium text-indigo-900">FROM</label>
+              <label className="text-xs font-medium text-indigo-900">
+                FROM
+              </label>
               <AutocompleteSelect
-                key={`origin-${formData.origin?.code || 'empty'}`}
+                key={`origin-${formData.origin?.code || "empty"}`}
                 type="airport"
                 placeholder=""
                 value={formData.origin}
                 onSelect={(item) => {
                   setFormData((prev) => ({
                     ...prev,
-                    origin: item // Store full object
+                    origin: item, // Store full object
                   }));
                 }}
               />
             </div>
             <button
-                type="button"
-                onClick={handleSwap}
-                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-full shadow-md p-3 z-10 transition-colors"
-              >
-                <HiArrowsRightLeft className="h-5 w-5 text-yellow-500" />
-              </button>
-
+              type="button"
+              onClick={handleSwap}
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-full shadow-md p-3 z-10 transition-colors cursor-pointer"
+            >
+              <HiArrowsRightLeft className="h-5 w-5 text-yellow-500" />
+            </button>
 
             <div className="flex-1  p-4 border-1 border-gray-300">
-              <label className="text-xs font-medium text text-indigo-900">TO</label>
+              <label className="text-xs font-medium text text-indigo-900">
+                TO
+              </label>
               <AutocompleteSelect
-                key={`destination-${formData.destination?.code || 'empty'}`}
+                key={`destination-${formData.destination?.code || "empty"}`}
                 type="airport"
                 placeholder=""
                 value={formData.destination}
                 onSelect={(item) => {
                   setFormData((prev) => ({
                     ...prev,
-                    destination: item // Store full object
+                    destination: item, // Store full object
                   }));
                 }}
               />
@@ -202,45 +212,46 @@ export default function SearchFlight() {
 
           {/* Departure Date */}
           <div className="p-2 border-t-1 border-b-1 border-gray-300">
-          <DatePicker
-            selected={new Date(formData.departure)}
-            onChange={handleDepartureChange}
-            withPortal
-            customInput={<CustomDateInput label="DEPARTURE" />}
-          />
+            <DatePicker
+              selected={new Date(formData.departure)}
+              onChange={handleDepartureChange}
+              withPortal
+              customInput={<CustomDateInput label="DEPARTURE" />}
+            />
           </div>
 
           {/* Return Date (Only for Round Trip) */}
           {journeyType === 2 && (
             <div className="p-2 border-1 border-gray-300">
-            <DatePicker
-              selected={
-                formData.returnDate ? new Date(formData.returnDate) : null
-              }
-              onChange={handleReturnChange}
-              minDate={new Date(formData.departure)}
-              withPortal
-              customInput={<CustomDateInput label="RETURN" />}
-            />
+              <DatePicker
+                selected={
+                  formData.returnDate ? new Date(formData.returnDate) : null
+                }
+                onChange={handleReturnChange}
+                minDate={new Date(formData.departure)}
+                withPortal
+                customInput={<CustomDateInput label="RETURN" />}
+              />
             </div>
           )}
 
           {journeyType === 1 && (
-              <div className="flex-1 p-2 border-1 border-gray-300">
-                <label className="text-xs font-medium text-indigo-900">RETURN</label>
-                <p>
-                  Book a roundtrip to save more
-                </p>
-              </div>
-            )}
-
+            <div className="flex-1 p-2 border-1 border-gray-300">
+              <label className="text-xs font-medium text-indigo-900">
+                RETURN
+              </label>
+              <p>Book a roundtrip to save more</p>
+            </div>
+          )}
 
           {/* Travellers & Cabin */}
           <div
             ref={travellerRef}
             className="col-span-1 relative  p-2 border-t-1 border-b-1 border-r-1 border-gray-300 rounded-r-2xl"
           >
-            <label className="text-xs font-medium text-indigo-900">TRAVELLERS & CLASS</label>
+            <label className="text-xs font-medium text-indigo-900">
+              TRAVELLERS & CLASS
+            </label>
             <div
               onClick={() => setShowTravellerDialog((prev) => !prev)}
               className="cursor-pointer font-semibold py-2"
@@ -250,35 +261,59 @@ export default function SearchFlight() {
 
             {showTravellerDialog && (
               <div className="absolute z-10 mt-2 w-72 bg-white rounded-lg shadow-lg p-4">
-                {["adults", "children", "infants"].map((field) => (
-                  <div
-                    key={field}
-                    className="flex justify-between mb-2 items-center"
-                  >
-                    <span className="capitalize">{field}</span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          updateTravellers(field, formData[field] - 1)
-                        }
-                        className="w-7 h-7 rounded-full bg-gray-200"
-                      >
-                        -
-                      </button>
-                      <span className="w-6 text-center">{formData[field]}</span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          updateTravellers(field, formData[field] + 1)
-                        }
-                        className="w-7 h-7 rounded-full bg-gray-200"
-                      >
-                        +
-                      </button>
+                {["adults", "children", "infants"].map((field) => {
+                  const totalOtherTravellers =
+                    formData.adults +
+                    formData.children +
+                    formData.infants -
+                    formData[field];
+
+                  const disableIncrement =
+                    totalOtherTravellers + formData[field] >= 9;
+                  const disableDecrement = formData[field] <= 0;
+
+                  return (
+                    <div
+                      key={field}
+                      className="flex justify-between mb-2 items-center"
+                    >
+                      <span className="capitalize">{field}</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateTravellers(field, formData[field] - 1)
+                          }
+                          className={`w-7 h-7 rounded-full bg-gray-200 ${
+                            disableDecrement
+                              ? "opacity-50 cursor-not-allowed"
+                              : ""
+                          }`}
+                          disabled={disableDecrement}
+                        >
+                          -
+                        </button>
+                        <span className="w-6 text-center">
+                          {formData[field]}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateTravellers(field, formData[field] + 1)
+                          }
+                          className={`w-7 h-7 rounded-full bg-gray-200 ${
+                            disableIncrement
+                              ? "opacity-50 cursor-not-allowed"
+                              : ""
+                          }`}
+                          disabled={disableIncrement}
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
 
                 <div className="mt-2">
                   <label className="block text-sm text-gray-500">
@@ -296,9 +331,11 @@ export default function SearchFlight() {
                       "Business",
                       "First",
                       "Premium First",
-                      "All"
+                      "All",
                     ].map((c) => (
-                      <option key={c}>{c}</option>
+                      <option key={c} value={c.replace(/\s+/g, "")}>
+                        {c}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -335,7 +372,7 @@ export default function SearchFlight() {
             <button
               type="submit"
               disabled={loading}
-              className="bg-indigo-900 hover:bg-indigo-950 text-white px-6 py-3 rounded-lg flex items-center gap-2 font-semibold"
+              className="bg-indigo-900 hover:bg-indigo-950 text-white px-6 py-3 rounded-lg flex items-center gap-2 font-semibold cursor-pointer"
             >
               <FaSearch /> {loading ? "Searching..." : "Search"}
             </button>

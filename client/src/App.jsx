@@ -6,10 +6,12 @@ import "./App.css";
 import SearchResults from "./pages/SearchResults";
 import RevalidationPage from "./pages/RevalidationPage";
 import BookingConfirmation from "./pages/BookingConfirmation";
+import { Toaster } from "react-hot-toast";
 
 function App() {
   return (
     <Router>
+      <Toaster position="top-center" reverseOrder={false} />
       <Routes>
         <Route
           path="/"

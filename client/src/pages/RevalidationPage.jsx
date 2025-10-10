@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axiosClient from "../../axios-client";
+import toast from "react-hot-toast";
 import PassengerForm from "../components/PassengerForm";
 
 const RevalidationPage = () => {
@@ -30,7 +31,7 @@ const RevalidationPage = () => {
     return date.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
-      hour12: false
+      hour12: false,
     });
   };
 
@@ -40,7 +41,7 @@ const RevalidationPage = () => {
     return date.toLocaleDateString("en-US", {
       weekday: "short",
       month: "short",
-      day: "numeric"
+      day: "numeric",
     });
   };
 
@@ -66,18 +67,34 @@ const RevalidationPage = () => {
       SG: "SpiceJet",
       "9W": "Jet Airways",
       UK: "Vistara",
-      G8: "GoFirst"
+      G8: "GoFirst",
     };
     return airlines[code] || code;
   };
 
   const handlePassengerDataChange = (data) => setPassengerData(data);
 
-  const handleProceedToBooking = async () => {
+  // Add this helper function at the top, inside the component or outside if you prefer
+  const extractErrorDetail = (message) => {
+    if (!message) return "An unknown error occurred";
+    // Check if it contains a JSON part
+    const jsonPart = message.split("An error occurred: ")[1];
+    if (!jsonPart) return message;
+    try {
+      const parsed = JSON.parse(jsonPart);
+      return parsed.detail || message;
+    } catch {
+      return message;
+    }
+  };
+
+  const handleProceedToBooking = async (hold) => {
+    // Clear previous error
+
     const errors = [];
 
     if (!passengerData?.passengers || passengerData.passengers.length === 0) {
-      alert("Please fill in passenger information");
+      toast.error("Please fill in passenger information");
       return;
     }
 
@@ -94,7 +111,7 @@ const RevalidationPage = () => {
         passengersByType[passenger.paxType] = [];
       passengersByType[passenger.paxType].push({
         ...passenger,
-        originalIndex: index
+        originalIndex: index,
       });
     });
 
@@ -130,7 +147,7 @@ const RevalidationPage = () => {
             seatPref: "seatPref",
             mealPref: "mealPref",
             ktn: "ktn",
-            redressNo: "redressNo"
+            redressNo: "redressNo",
           };
 
           const passengerFieldName = fieldMap[field] || field;
@@ -160,22 +177,53 @@ const RevalidationPage = () => {
     const payload = {
       traceId: revalidation.traceId,
       purchaseIds: [purchaseId],
-      isHold: false,
-      passengers: passengerData.passengers
+      isHold: hold,
+      passengers: passengerData.passengers,
     };
 
     console.log("The request to booking:", payload);
-    const res = await axiosClient.post("/flights/booking", payload);
-    console.log(res.data);
 
-    if (res.data.success) {
-      navigate("/flight-booking", { state: { booking: res.data.data } });
+    try {
+      const res = await axiosClient.post("/flights/booking", payload);
+      console.log(res.data);
+
+      if (res.data.success) {
+        navigate("/flight-booking", { state: { booking: res.data.data } });
+      } else {
+        toast.error(
+          extractErrorDetail(res.data.message) ||
+            "Booking failed. Please try again."
+        );
+      }
+    } catch (err) {
+      console.error("Booking error:", err);
+      toast.error(
+        extractErrorDetail(
+          err.response?.data?.message ||
+            err.message ||
+            "An error occurred during booking. Please try again."
+        )
+      );
     }
   };
 
   return (
     <div className="max-w-6xl mx-auto mt-2 mb-2 p-6 bg-white rounded-xl shadow-lg">
-      <h2 className="text-2xl font-bold mb-6">Review Your Flight</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold mb-6">Review Your Flight</h2>
+        <span
+          onClick={() => setIsFareRulesOpen(true)}
+          className="text-ms text-blue-600"
+        >
+          View Fare Rules
+        </span>
+      </div>
+
+      {/* {error && (
+        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg mb-6">
+          {error}
+        </div>
+      )} */}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Panel */}
@@ -392,107 +440,81 @@ const RevalidationPage = () => {
           </div>
 
           {/* Fare Rules (Collapsible) */}
-          <div className="bg-gray-50 p-4 rounded-lg border">
-            <div
-              className="flex justify-between items-center cursor-pointer"
-              role="button"
-              aria-expanded={isFareRulesOpen}
-              onClick={() => setIsFareRulesOpen(!isFareRulesOpen)}
-            >
-              <h4 className="font-semibold text-gray-800 flex items-center">
-                <svg
-                  className="w-5 h-5 mr-2"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
+          {isFareRulesOpen && (
+           <div className="fixed top-0 left-0 w-screen h-screen bg-opacity-80 flex items-center justify-center z-50 backdrop-blur-sm">
+            <div className="bg-white rounded-lg shadow-lg w-full max-w-3xl p-6 relative max-h-[90vh] overflow-y-auto">
+                <button
+                  className="absolute top-3 right-3 text-gray-600 hover:text-gray-900"
+                  onClick={() => setIsFareRulesOpen(false)}
                 >
-                  <path
-                    fillRule="evenodd"
-                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                Fare Rules
-              </h4>
-              <svg
-                className={`w-5 h-5 transform transition-transform ${
-                  isFareRulesOpen ? "rotate-180" : ""
-                }`}
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </div>
-            {isFareRulesOpen && (
-              <div className="mt-3 space-y-3">
-                {fareGroup?.miniRules?.length ? (
-                  <>
-                    {fareGroup.miniRules.reduce(
-                      (acc, rule) => {
-                        const key = rule.changeAllowed ? "change" : "cancel";
-                        if (!acc[key]) acc[key] = [];
-                        acc[key].push(rule);
-                        return acc;
-                      },
-                      { change: [], cancel: [] }
-                    ).change?.length > 0 && (
-                      <div className="bg-blue-50 p-3 rounded border border-blue-200">
-                        <p className="font-medium text-blue-800 mb-2">
-                          ✏️ Changes Allowed
-                        </p>
-                        <p className="text-sm text-blue-700">
-                          Change fee: ₹
-                          {fareGroup.miniRules.find((r) => r.changeAllowed)
-                            ?.exgAmt || 0}
-                        </p>
-                        <p className="text-xs text-blue-600 mt-1">
-                          {
-                            fareGroup.miniRules.find((r) => r.changeAllowed)
-                              ?.remarks
-                          }
-                        </p>
-                      </div>
-                    )}
+                  ✕
+                </button>
+                <h3 className="text-xl font-semibold mb-4">Fare Rules</h3>
 
-                    {fareGroup.miniRules.reduce(
-                      (acc, rule) => {
-                        const key = rule.changeAllowed ? "change" : "cancel";
-                        if (!acc[key]) acc[key] = [];
-                        acc[key].push(rule);
-                        return acc;
-                      },
-                      { change: [], cancel: [] }
-                    ).cancel?.length > 0 && (
-                      <div className="bg-green-50 p-3 rounded border border-green-200">
-                        <p className="font-medium text-green-800 mb-2">
-                          ❌ Cancellation Allowed
-                        </p>
-                        <p className="text-sm text-green-700">
-                          Cancel fee: ₹
-                          {fareGroup.miniRules.find((r) => r.cancelAllowed)
-                            ?.canAmt || 0}
-                        </p>
-                        <p className="text-xs text-green-600 mt-1">
-                          {
-                            fareGroup.miniRules.find((r) => r.cancelAllowed)
-                              ?.remarks
-                          }
-                        </p>
-                      </div>
-                    )}
-                  </>
+                {fareGroup?.miniRules?.length ? (
+                  <div className="space-y-6">
+                    {/* Change Policy */}
+                    <div>
+                      <h4 className="text-lg font-semibold text-blue-600 mb-2">
+                        Change Policy
+                      </h4>
+                      {fareGroup.miniRules
+                        .filter((rule) => rule.changeAllowed)
+                        .map((rule, index) => (
+                          <div
+                            key={index}
+                            className="border-l-4 border-blue-400 pl-3 py-2 mb-2 bg-gray-50 rounded"
+                          >
+                            <p className="text-sm text-gray-700">
+                              <strong>When:</strong> {rule.apply}
+                            </p>
+                            <p className="text-sm text-gray-700">
+                              <strong>Fee:</strong> ₹{rule.exgAmt || 0}
+                            </p>
+                            {rule.remarks && (
+                              <p className="text-xs text-gray-500 mt-1 italic">
+                                {rule.remarks}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                    </div>
+
+                    {/* Cancellation Policy */}
+                    <div>
+                      <h4 className="text-lg font-semibold text-red-600 mb-2">
+                        Cancellation Policy
+                      </h4>
+                      {fareGroup.miniRules
+                        .filter((rule) => rule.cancelAllowed)
+                        .map((rule, index) => (
+                          <div
+                            key={index}
+                            className="border-l-4 border-red-400 pl-3 py-2 mb-2 bg-gray-50 rounded"
+                          >
+                            <p className="text-sm text-gray-700">
+                              <strong>When:</strong> {rule.apply}
+                            </p>
+                            <p className="text-sm text-gray-700">
+                              <strong>Fee:</strong> ₹{rule.canAmt || 0}
+                            </p>
+                            {rule.remarks && (
+                              <p className="text-xs text-gray-500 mt-1 italic">
+                                {rule.remarks}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
                 ) : (
                   <p className="text-gray-600 text-sm">
-                    Non-refundable / Non-changeable unless specified by airline.
+                    No change or cancellation policies available for this fare.
                   </p>
                 )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           <div className="bg-gray-50 p-4 rounded-lg border">
             <div
@@ -514,7 +536,7 @@ const RevalidationPage = () => {
               </h4>
               <svg
                 className={`w-5 h-5 transform transition-transform ${
-                  isBaggageOpen ? "rotate-180" : ""
+                  isAddonsOpen ? "rotate-180" : ""
                 }`}
                 fill="currentColor"
                 viewBox="0 0 20 20"
@@ -582,7 +604,14 @@ const RevalidationPage = () => {
                   Total Amount
                 </span>
                 <span className="text-2xl font-bold text-blue-600">
-                  {fareGroup?.totalAmount?.toLocaleString() || "N/A"}
+                  ₹
+                  {(
+                    (fareGroup?.fares?.[0]?.base || 0) +
+                    (fareGroup?.fares?.[0]?.taxes?.reduce(
+                      (sum, tax) => sum + (tax.amt || 0),
+                      0
+                    ) || 0)
+                  ).toLocaleString()}
                 </span>
               </div>
 
@@ -607,11 +636,25 @@ const RevalidationPage = () => {
         >
           Back to Search
         </button>
-        <button
+        {/* <button
           onClick={handleProceedToBooking}
           className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
         >
           Continue to Book
+        </button> */}
+
+        <button
+          onClick={() => handleProceedToBooking(true)}
+          className="flex-1 px-6 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors font-medium"
+        >
+          Hold
+        </button>
+
+        <button
+          onClick={() => handleProceedToBooking(false)}
+          className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+        >
+          Issue
         </button>
       </div>
     </div>

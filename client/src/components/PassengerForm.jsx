@@ -14,9 +14,9 @@ const PassengerForm = ({ passengerFields, flight, onPassengerDataChange }) => {
         ...passengerData[paxType],
         [passengerIndex]: {
           ...passengerData[paxType]?.[passengerIndex],
-          [field]: value
-        }
-      }
+          [field]: value,
+        },
+      },
     };
     setPassengerData(updatedData);
 
@@ -36,7 +36,7 @@ const PassengerForm = ({ passengerFields, flight, onPassengerDataChange }) => {
     Object.keys(data).forEach((paxType) => {
       Object.keys(data[paxType]).forEach((index) => {
         const pax = data[paxType][index];
-        passengers.push({
+        const passengerBase = {
           title: pax.salutation || "",
           firstName: pax.firstName || "",
           lastName: pax.lastName || "",
@@ -55,27 +55,41 @@ const PassengerForm = ({ passengerFields, flight, onPassengerDataChange }) => {
           mobile: pax.mobile || "",
           passportNumber: pax.passportNumber || "",
           passengerNationality: pax.passengerNationality || "",
-          passportDOI: pax.passportDOI ? new Date(pax.passportDOI).toISOString() : "",
-          passportDOE: pax.passportDOE ? new Date(pax.passportDOE).toISOString() : "",
+          passportDOI: pax.passportDOI
+            ? new Date(pax.passportDOI).toISOString()
+            : "",
+          passportDOE: pax.passportDOE
+            ? new Date(pax.passportDOE).toISOString()
+            : "",
           passportIssuedCountry: pax.passportIssuedCountry || "",
           seatPref: pax.seatPref || "N",
           mealPref: pax.mealPref || "",
           ktn: pax.ktn || "",
           redressNo: pax.redressNo || "",
-          serviceReference: pax.serviceReference || [
-            {
-              baggageRefNo: "",
-              MealsRefNo: "",
-              SeatRefNo: "",
-              SegmentInfo: ""
-            },
-            {
-              baggageRefNo: "",
-              MealsRefNo: "",
-              SegmentInfo: ""
-            }
-          ]
-        });
+        };
+
+        // Only include serviceReference if paxType is not INF
+        const passenger =
+          paxType === "INF"
+            ? passengerBase
+            : {
+                ...passengerBase,
+                serviceReference: pax.serviceReference || [
+                  {
+                    baggageRefNo: "",
+                    MealsRefNo: "",
+                    SeatRefNo: "",
+                    SegmentInfo: "",
+                  },
+                  {
+                    baggageRefNo: "",
+                    MealsRefNo: "",
+                    SegmentInfo: "",
+                  },
+                ],
+              };
+
+        passengers.push(passenger);
       });
     });
 
@@ -90,7 +104,7 @@ const PassengerForm = ({ passengerFields, flight, onPassengerDataChange }) => {
       value: passengerData[paxType]?.[passengerIndex]?.[field] || "",
       onChange: (e) =>
         handleInputChange(paxType, passengerIndex, field, e.target.value),
-      required: isRequired
+      required: isRequired,
     };
 
     switch (field) {
@@ -176,23 +190,36 @@ const PassengerForm = ({ passengerFields, flight, onPassengerDataChange }) => {
                       Passenger {i + 1} ({paxType})
                     </h6>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {Object.keys(pax)
-                        .filter((key) => key !== "paxType")
-                        .map((field) => (
-                          <div key={field} className="flex flex-col">
-                            <label className="text-sm text-gray-600 mb-1">
-                              {field
-                                .replace(/([A-Z])/g, " $1")
-                                .replace(/^./, (str) => str.toUpperCase())}
-                              {pax[field] ? (
-                                <span className="text-red-500"> *</span>
-                              ) : (
-                                " (Optional)"
-                              )}
-                            </label>
-                            {renderInputField(paxType, i, field, pax[field])}
-                          </div>
-                        ))}
+                      {[
+                        "salutation",
+                        "firstName",
+                        "lastName",
+                        "gender",
+                        ...Object.keys(pax).filter(
+                          (key) =>
+                            ![
+                              "paxType",
+                              "salutation",
+                              "firstName",
+                              "lastName",
+                              "gender",
+                            ].includes(key)
+                        ),
+                      ].map((field) => (
+                        <div key={field} className="flex flex-col">
+                          <label className="text-sm text-gray-600 mb-1">
+                            {field
+                              .replace(/([A-Z])/g, " $1")
+                              .replace(/^./, (str) => str.toUpperCase())}
+                            {pax[field] ? (
+                              <span className="text-red-500"> *</span>
+                            ) : (
+                              " (Optional)"
+                            )}
+                          </label>
+                          {renderInputField(paxType, i, field, pax[field])}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ))}

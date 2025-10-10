@@ -5,6 +5,7 @@ namespace App\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 use App\Models\Airline;
 
 class GetFaresApi
@@ -55,10 +56,13 @@ class GetFaresApi
         return $token;
     }
 
+    public function debugToken(){
+        return $this->fetchToken();
+    }
+
  // Example: inside searchFlights
 public function searchFlights(array $data)
 {
-
     $token = $this->getToken();
 
     $originDestinations = array_map(function ($leg) {
@@ -75,49 +79,33 @@ public function searchFlights(array $data)
         'childCount' => $data['childCount'],
         'infantCount' => $data['infantCount'],
         'cabinClass' => $data['cabinClass'],
-        'CabinPreferenceType' => 'Preferred',
+        'CabinPreferenceType' => ($data['cabinClass'] !== "Economy" && $data['cabinClass'] !== "All") ? 'Restricted' : 'Preferred',
         'stopOver' => 'None',
         'includecarrier' => '',
         'airTravelType' => match ($data['journeyType']) {
             1 => 'Oneway',
             2 => 'RoundTrip',
-            default => 'multi'
+            default => 'Oneway'
         },
         'includeBaggage' => true,
         'IsBrandFareEnable' => false,
         'nationality' => '',
-        'includeMiniRules' => false,
+        'includeMiniRules' => true,
         'directOnly' => $data['directOnly']
     ];
 
-    $cacheKey = 'search_' . md5(json_encode($payload));
+    Storage::put('request/search_payload.json', json_encode($payload, JSON_PRETTY_PRINT));
 
-    $results = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($token, $payload) {
+    $response = Http::withToken($token)->post($this->baseUrl . 'Flights/Search/v1', $payload);
 
-        $response = Http::withToken($token)
-            ->retry(2, 200)
-            ->timeout(25)
-            ->post($this->baseUrl . 'Flights/Search/v1', $payload);
-;
+    if (!$response->ok()) {
+        throw new \Exception($response->body(), $response->status());
+    }
 
+    $results = $response->json();
+    Storage::put('response/search_results.json', json_encode($results, JSON_PRETTY_PRINT));
 
-        // 🔹 Log full request & response for debugging
-            Log::info('Flights Search API call', [
-                'endpoint' => $this->baseUrl . 'Flights/Search/v1',
-                'payload'  => json_encode($payload, JSON_PRETTY_PRINT),
-                'status'   => $response->status(),
-                'response' => json_encode($response->json(), JSON_PRETTY_PRINT)
-            ]);
-
-        if (!$response->ok()) {
-            throw new \Exception($response->body(), $response->status());
-        }
-
-        return $response->json();
-    });
-
-     if (!empty($results['flights'])) {
-        $enrichStart = microtime(true);
+    if (!empty($results['flights'])) {
         $flights = $results['flights'];
 
         $airlineCodes = collect($flights)->pluck('airline')->unique();
@@ -126,9 +114,7 @@ public function searchFlights(array $data)
 
         foreach ($flights as &$flight) {
             $flight['airlineName'] = $airlineMap[$flight['airline']] ?? $flight['airline'];
-            $flight['hasSeats'] = false;
 
-            //Check for direct or connecting
             $isDirect = true;
             foreach ($flight['segGroups'] as $segGroup) {
                 if (count($segGroup['segs']) > 1) {
@@ -137,15 +123,6 @@ public function searchFlights(array $data)
                 }
             }
             $flight['isDirect'] = $isDirect;
-
-            // foreach ($flight['fareGroups'] as $fareGroup) {
-            //     foreach ($fareGroup['segInfos'] as $segInfo) {
-            //         if ($segInfo['seatRemaining'] > 0) {
-            //             $flight['hasSeats'] = true;
-            //             break 2;
-            //         }
-            //     }
-            // }
         }
 
         $results['flights'] = $flights;
@@ -154,9 +131,17 @@ public function searchFlights(array $data)
     return $results;
 }
 
-public function revalidate(array $payload)
+
+public function revalidate(array $data)
 {
     $token = $this->getToken();
+
+    $payload = [
+        'traceId' => $data['traceId'],
+        'purchaseIds' => array_map('strval', $data['purchaseIds']),
+    ];
+
+    Storage::put('request/revalidate_payload.json', json_encode($payload, JSON_PRETTY_PRINT));
 
     $cacheKey = 'revalidate_' . md5($payload['traceId'] . implode(',', $payload['purchaseIds']));
 
@@ -164,16 +149,19 @@ public function revalidate(array $payload)
 
         $response = Http::withToken($token)
             ->retry(2, 200)
-            ->timeout(15)
+            ->timeout(25)
             ->post($this->baseUrl . 'Flights/Revalidation/v1', $payload);
 
-        Log::info('Flights Revalidation API call', [
-            'endpoint' => $this->baseUrl . 'Flights/Revalidation/v1',
-            'payload'  => json_encode($payload, JSON_PRETTY_PRINT),
-            'status'   => $response->status(),
-            'response' => json_encode($response->json(), JSON_PRETTY_PRINT),
-        ]);
+        // Log::info('Flights Revalidation API call', [
+        //     'endpoint' => $this->baseUrl . 'Flights/Revalidation/v1',
+        //     'payload'  => json_encode($payload, JSON_PRETTY_PRINT),
+        //     'status'   => $response->status(),
+        //     'response' => json_encode($response->json(), JSON_PRETTY_PRINT),
+        // ]);
 
+        if($response->status() == 204){
+            Storage::put('response/revalidate_response.json', json_encode($response->json(), JSON_PRETTY_PRINT));
+        }
         if (!$response->ok()) {
             $errorBody = $response->json();
             $errorMessage = $errorBody['message'] ?? $response->body();
@@ -184,29 +172,72 @@ public function revalidate(array $payload)
             throw new \Exception('Failed to revalidate fares: ' . $errorMessage, $response->status());
         }
 
+        Storage::put('response/revalidate_response.json', json_encode($response->json(), JSON_PRETTY_PRINT));
+
         return $response->json();
     });
 }
-    public function createPnr(array $bookingData)
+
+    public function createPnr(array $data)
 {
     $token = $this->getToken();
     $url   = $this->baseUrl . "Flights/Booking/CreatePNR/v1";
 
-    $response = Http::withToken($token)->post($url, $bookingData);
+    $passengers = array_map(function ($pax) {
+    $passenger = [
+        'title' => $pax['title'],
+        'firstName' => $pax['firstName'],
+        'lastName' => $pax['lastName'],
+        'email' => $pax['email'],
+        'dob' => $pax['dob'],
+        'genderType' => $pax['genderType'],
+        'areaCode' => $pax['areaCode'] ?? '',
+        'ffNumber' => $pax['ffNumber'] ?? '',
+        'paxType' => $pax['paxType'],
+        'mobile' => $pax['mobile'] ?? '',
+        'passportNumber' => $pax['passportNumber'],
+        'passengerNationality' => $pax['passengerNationality'],
+        'passportDOI' => $pax['passportDOI'],
+        'passportDOE' => $pax['passportDOE'],
+        'passportIssuedCountry' => $pax['passportIssuedCountry'],
+        'seatPref' => $pax['seatPref'] ?? '',
+        'mealPref' => $pax['mealPref'] ?? '',
+        'ktn' => $pax['ktn'] ?? '',
+        'redressNo' => $pax['redressNo'] ?? '',
+    ];
 
-    // Log request and response
-    \Log::info('Create PNR API Call', [
-        'url'      => $url,
-        'request'  => json_encode($bookingData, JSON_PRETTY_PRINT),
-        'status'   => $response->status(),
-        'response' => json_encode($response->json(), JSON_PRETTY_PRINT)
-    ]);
+    // Add serviceReference only for ADT or CHD
+    if (in_array($pax['paxType'], ['ADT', 'CHD'])) {
+        $passenger['serviceReference'] = [
+            ['baggageRefNo' => '', 'MealsRefNo' => '', 'SeatRefNo' => '', 'SegmentInfo' => ''],
+            ['baggageRefNo' => '', 'SeatRefNo' => '', 'SegmentInfo' => '']
+        ];
+    }
+
+    return $passenger;
+}, $data['passengers']);
+
+
+    $payload = [
+        'traceId' => $data['traceId'],
+        'gstDetails' => $data['gstDetails'] ?? null,
+        'purchaseIds' => array_map('strval', $data['purchaseIds']),
+        'isHold' => $data['isHold'],
+        'address' => $data['address'] ?? null,
+        'passengers' => $passengers,
+    ];
+
+    Storage::put('request/pnr_payload.json', json_encode($payload, JSON_PRETTY_PRINT));
+
+    $response = Http::withToken($token)->post($url, $payload);
 
     if (!$response->ok()) {
         throw new \Exception($response->body(), $response->status());
     }
 
     $pnrData = $response->json();
+
+    Storage::put('response/pnr_response.json', json_encode($pnrData, JSON_PRETTY_PRINT));
 
     if (!isset($pnrData['orderId'])) {
         throw new \Exception('PNR creation returned no orderId');
@@ -218,20 +249,17 @@ public function revalidate(array $payload)
     ];
 }
 
+
 public function getBooking(string $orderId)
 {
     $token = $this->getToken();
     $url   = $this->baseUrl . "Flights/Booking/GetBooking/v1/" . $orderId;
 
+    Storage::put('request/get_booking_payload.json', json_encode($url, JSON_PRETTY_PRINT));
+
     $response = Http::withToken($token)->get($url);
 
-    // Log request and response
-    \Log::info('Get Booking API Call', [
-        'url'      => $url,
-        'request'  => ['orderId' => $orderId],
-        'status'   => $response->status(),
-        'response' => json_encode($response->json(), JSON_PRETTY_PRINT),
-    ]);
+    Storage::put('response/get_booking_response.json', json_encode($response->json(), JSON_PRETTY_PRINT));
 
     if (!$response->ok()) {
         throw new \Exception($response->body(), $response->status());
