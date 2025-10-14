@@ -254,77 +254,87 @@ const RevalidationPage = () => {
             </div>
           </div>
 
-          {/* Flight Segments */}
           {flight?.segGroups?.map((segGroup, gIdx) => {
             const segments = segGroup.segs || [];
+            const totalSegments = segments.length;
+            const isReturn = gIdx > 0;
             return (
               <div
                 key={gIdx}
                 className="bg-white border-2 border-gray-200 rounded-lg overflow-hidden"
               >
+                <div className="bg-blue-600 text-white p-4 flex justify-between items-center">
+                  <div>
+                    <h3 className="text-lg font-semibold">
+                      {isReturn ? "Return: " : "Outbound: "} {segGroup.origin} →{" "}
+                      {segGroup.destination}
+                    </h3>
+                    <p className="text-blue-100 text-sm">
+                      {formatDate(segGroup.departureOn)} •{" "}
+                      {totalSegments === 1
+                        ? "Non-stop"
+                        : `${totalSegments - 1} stop${
+                            totalSegments > 2 ? "s" : ""
+                          }`}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-blue-100 text-sm">Total Duration</p>
+                    <p className="text-lg font-semibold">
+                      {formatDuration(
+                        segments.reduce((t, s) => t + s.duration, 0)
+                      )}
+                    </p>
+                  </div>
+                </div>
+
                 <div className="p-4">
                   {segments.map((seg, idx) => (
-                    <React.Fragment key={idx}>
-                      {idx > 0 && (
-                        <div className="border-t border-gray-200 py-3 flex flex-col items-center text-center">
-                          <p className="text-sm text-gray-600">Change Planes</p>
-                          <p className="text-sm font-medium text-gray-800">
-                            Connecting Time:{" "}
-                            {formatDuration(
-                              calculateLayover(
-                                segments[idx - 1].arrivalOn,
-                                seg.departureOn
-                              )
-                            )}
+                    <div key={idx}>
+                      <div className="flex items-center justify-between py-4">
+                        <div className="text-center flex-1">
+                          <p className="text-2xl font-bold text-gray-800">
+                            {formatTime(seg.departureOn)}
                           </p>
-                        </div>
-                      )}
-                      <div className="flex items-start justify-between py-4">
-                        {/* Left: Airline, Class, Flight, Departure Details */}
-                        <div className="flex items-start space-x-3 flex-1 pr-4">
-                          <div className="w-6 h-6 bg-red-500 rounded flex-shrink-0 flex items-center justify-center">
-                            <span className="text-white text-xs font-bold">
-                              {seg.mrkAirline}
-                            </span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs text-gray-600 mb-1">
-                              Economy
-                            </p>
-                            <p className="text-sm font-medium text-gray-800 truncate">
-                              {getAirlineName(seg.mrkAirline)} {seg.flightNum}
-                            </p>
-                          </div>
-                          <div className="text-left ml-auto">
-                            <p className="text-2xl font-bold text-gray-800">
-                              {formatTime(seg.departureOn)}
-                            </p>
-                            <p className="text-sm text-gray-600 font-medium">
-                              {seg.origin}
-                            </p>
+                          <p className="text-sm text-gray-600 font-medium">
+                            {seg.origin}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {formatDate(seg.departureOn)}
+                          </p>
+                          {seg.depTerminal && (
                             <p className="text-xs text-gray-500">
-                              {formatDate(seg.departureOn)}
+                              Terminal {seg.depTerminal}
                             </p>
-                            {seg.depTerminal && (
-                              <p className="text-xs text-gray-500">
-                                {seg.depTerminal}
-                              </p>
-                            )}
+                          )}
+                        </div>
+
+                        <div className="flex-2 px-6">
+                          <div className="flex flex-col items-center">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                <span className="text-blue-600 font-bold text-xs">
+                                  {seg.mrkAirline}
+                                </span>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-sm font-medium text-gray-800">
+                                  {getAirlineName(seg.mrkAirline)}{" "}
+                                  {seg.flightNum}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {seg.eqpType} • {formatDuration(seg.duration)}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="w-full h-px bg-gray-300 relative">
+                              <div className="absolute left-0 top-0 w-2 h-2 bg-blue-500 rounded-full transform -translate-y-1/2"></div>
+                              <div className="absolute right-0 top-0 w-2 h-2 bg-blue-500 rounded-full transform -translate-y-1/2"></div>
+                            </div>
                           </div>
                         </div>
 
-                        {/* Middle: Duration */}
-                        <div className="flex flex-col items-center flex-1 px-4">
-                          <p className="text-sm font-medium text-gray-800 mb-2">
-                            {formatDuration(seg.duration)}
-                          </p>
-                          <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mb-2">
-                            <span className="text-gray-600 text-xs">✈</span>
-                          </div>
-                        </div>
-
-                        {/* Right: Arrival Details */}
-                        <div className="text-right flex-1 pl-4">
+                        <div className="text-center flex-1">
                           <p className="text-2xl font-bold text-gray-800">
                             {formatTime(seg.arrivalOn)}
                           </p>
@@ -340,28 +350,20 @@ const RevalidationPage = () => {
                             </p>
                           )}
                         </div>
-
-                        {/* Baggage Details */}
-                        <div className="ml-4 flex-shrink-0">
-                          <div className="bg-yellow-50 border border-yellow-200 rounded p-2 w-48">
-                            <p className="text-xs font-medium text-yellow-800 mb-1">
-                              Free Baggage Detail
-                            </p>
-                            <p className="text-xs text-gray-700 mb-1 flex items-center">
-                              <span className="w-1 h-1 bg-green-500 rounded-full mr-1"></span>
-                              Check in Adult - No Baggage
-                            </p>
-                            <p className="text-xs text-gray-700 mb-1 flex items-center">
-                              <span className="w-1 h-1 bg-green-500 rounded-full mr-1"></span>
-                              Cabin Adult - 10kg
-                            </p>
-                            <p className="text-xs text-yellow-600">
-                              Information
-                            </p>
-                          </div>
-                        </div>
                       </div>
-                    </React.Fragment>
+
+                      {idx < segments.length - 1 && (
+                        <div className="border-t border-gray-200 py-3 flex justify-center space-x-2 text-orange-600 text-sm">
+                          <p>
+                            Layover in {seg.destination}:{" "}
+                            {calculateLayover(
+                              seg.arrivalOn,
+                              segments[idx + 1]?.departureOn
+                            )}
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
               </div>

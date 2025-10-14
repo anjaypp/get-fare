@@ -28,7 +28,7 @@ const SearchSummary = () => {
             <button
               key={type}
               onClick={() => setTripType(type)}
-              className={`px-5 py-2 sm:text-sm md:text-base rounded-3xl ${
+              className={`px-5 py-2 sm:text-sm md:text-base rounded-3xl cursor-pointer ${
                 tripType === type
                   ? "bg-[#15144E] border border-[#15144E] text-white"
                   : "bg-white border border-[#CACACA] text-[#15144E] hover:bg-[#f2f2f2]"
@@ -55,7 +55,7 @@ const SearchSummary = () => {
                 type="checkbox"
                 checked={filter.checked}
                 readOnly
-                className="appearance-none w-4 h-4 border border-[#15144E] rounded bg-white checked:bg-white"
+                className="appearance-none w-4 h-4 border border-[#15144E] rounded bg-white checked:bg-white cursor-pointer"
                 style={{
                   backgroundPosition: "center",
                   backgroundRepeat: "no-repeat",
@@ -74,7 +74,7 @@ const SearchSummary = () => {
       {/* Summary row */}
       <div className="bg-white mt-5 rounded-2xl py-5 px-6 flex flex-wrap md:flex-nowrap items-center justify-between gap-6 text-[#15144E] shadow-sm">
         {/* From */}
-        <div className="flex flex-col">
+        <div className="flex flex-col cursor-pointer">
           <p className="text-xs uppercase">From</p>
           <p>
             <span className="font-semibold text-base md:text-lg">
@@ -88,14 +88,14 @@ const SearchSummary = () => {
         </div>
 
         {/* Arrow */}
-        <div className="flex justify-center items-center">
+        <div className="flex justify-center items-center cursor-pointer">
           <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden border border-[#CACACA]">
             <HiArrowsRightLeft className="w-5 h-5 text-[#15144E]" />
           </div>
         </div>
 
         {/* To */}
-        <div className="flex flex-col">
+        <div className="flex flex-col cursor-pointer">
           <p className="text-xs uppercase">To</p>
           <p>
             <span className="font-semibold text-base md:text-lg">
@@ -110,7 +110,7 @@ const SearchSummary = () => {
         <DepartDate />
 
         {/* Return */}
-        <div className="flex flex-col">
+        <div className="flex flex-col cursor-pointer">
           <div className="flex items-center gap-1">
             <span className="text-xs uppercase">Return</span>
             <IoIosArrowDown className="cursor-pointer" />
@@ -121,13 +121,13 @@ const SearchSummary = () => {
         </div>
 
         {/* Travelers */}
-        <div className="flex flex-col">
+        <div className="flex flex-col cursor-pointer">
           <p className="text-xs uppercase">{travelers.count} Traveler(s)</p>
           <p className="text-sm">{travelers.class}</p>
         </div>
 
         {/* Modify Button */}
-        <button className="bg-[#15144E] text-white px-6 py-3 rounded-lg hover:bg-[#0f0e3c] transition">
+        <button className="bg-[#15144E] text-white px-6 py-3 rounded-lg hover:bg-[#0f0e3c] transition cursor-pointer">
           Modify Search
         </button>
       </div>

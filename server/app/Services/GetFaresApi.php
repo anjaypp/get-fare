@@ -58,9 +58,6 @@ class GetFaresApi
         return $token;
     }
 
-    public function debugToken(){
-        return $this->fetchToken();
-    }
 
  // Example: inside searchFlights
 public function searchFlights(array $data)
