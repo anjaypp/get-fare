@@ -261,91 +261,155 @@ export default function SearchFlight() {
             </div>
 
             {showTravellerDialog && (
-              <div className="absolute z-10 mt-2 w-72 bg-white rounded-lg shadow-lg p-4">
-                {["adults", "children", "infants"].map((field) => {
-                  const totalOtherTravellers =
-                    formData.adults +
-                    formData.children +
-                    formData.infants -
-                    formData[field];
-
-                  const disableIncrement =
-                    totalOtherTravellers + formData[field] >= 9;
-                  const disableDecrement = formData[field] <= 0;
-
-                  return (
-                    <div
-                      key={field}
-                      className="flex justify-between mb-2 items-center"
-                    >
-                      <span className="capitalize">{field}</span>
-                      <div className="flex items-center gap-2">
+              <div className="absolute z-10 mt-2 w-80 translate-x-[-25%] bg-white rounded-lg shadow-lg p-4">
+                {/* Adults Section */}
+                <div className="mb-4">
+                  <div className="text-sm font-medium text-gray-900 mb-2">
+                    Adult
+                  </div>
+                  <div className="text-xs text-gray-500 mb-2">
+                    on the day of travel
+                  </div>
+                  <div className="flex space-x-1">
+                    {Array.from({ length: 9 }, (_, i) => i + 1).map((num) => {
+                      const isSelected = formData.adults === num;
+                      const totalOtherTravellers =
+                        formData.children + formData.infants;
+                      const disable = totalOtherTravellers + num > 9;
+                      return (
                         <button
+                          key={num}
                           type="button"
                           onClick={() =>
-                            updateTravellers(field, formData[field] - 1)
+                            !disable && updateTravellers("adults", num)
                           }
-                          className={`w-7 h-7 rounded-full bg-gray-200 ${
-                            disableDecrement
-                              ? "opacity-50 cursor-not-allowed"
-                              : ""
+                          className={`w-8 h-8 rounded flex items-center justify-center text-sm font-medium transition-colors ${
+                            isSelected
+                              ? "bg-indigo-900 text-white"
+                              : disable
+                              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                              : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
                           }`}
-                          disabled={disableDecrement}
+                          disabled={disable}
                         >
-                          -
+                          {num}
                         </button>
-                        <span className="w-6 text-center">
-                          {formData[field]}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            updateTravellers(field, formData[field] + 1)
-                          }
-                          className={`w-7 h-7 rounded-full bg-gray-200 ${
-                            disableIncrement
-                              ? "opacity-50 cursor-not-allowed"
-                              : ""
-                          }`}
-                          disabled={disableIncrement}
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-
-                <div className="mt-2">
-                  <label className="block text-sm text-gray-500">
-                    Cabin Class
-                  </label>
-                  <select
-                    name="cabin"
-                    value={formData.cabin}
-                    onChange={handleChange}
-                    className="w-full border rounded px-2 py-1 mt-1"
-                  >
-                    {[
-                      "Economy",
-                      "Premium Economy",
-                      "Business",
-                      "First",
-                      "Premium First",
-                      "All",
-                    ].map((c) => (
-                      <option key={c} value={c.replace(/\s+/g, "")}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
+                      );
+                    })}
+                  </div>
                 </div>
 
-                <div className="flex justify-end mt-4">
+                {/* Children Section */}
+                <div className="mb-4">
+                  <div className="text-sm font-medium text-gray-900 mb-1">
+                    Child
+                  </div>
+                  <div className="text-xs text-gray-500 mb-2">(2-12 YRS)</div>
+                  <div className="flex space-x-1">
+                    {Array.from({ length: 10 }, (_, i) => i).map((num) => {
+                      const isSelected = formData.children === num;
+                      const totalOtherTravellers =
+                        formData.adults + formData.infants;
+                      const disable = totalOtherTravellers + num > 9;
+                      return (
+                        <button
+                          key={num}
+                          type="button"
+                          onClick={() =>
+                            !disable && updateTravellers("children", num)
+                          }
+                          className={`w-8 h-8 rounded flex items-center justify-center text-sm font-medium transition-colors ${
+                            isSelected
+                              ? "bg-indigo-900 text-white"
+                              : disable
+                              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                              : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                          }`}
+                          disabled={disable}
+                        >
+                          {num}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Infants Section */}
+                <div className="mb-4">
+                  <div className="text-sm font-medium text-gray-900 mb-1">
+                    Infant
+                  </div>
+                  <div className="text-xs text-gray-500 mb-2">
+                    (Below 2 YRS)
+                  </div>
+                  <div className="flex space-x-1">
+                    {Array.from({ length: 10 }, (_, i) => i).map((num) => {
+                      const isSelected = formData.infants === num;
+                      const totalOtherTravellers =
+                        formData.adults + formData.children;
+                      const disable = totalOtherTravellers + num > 9;
+                      return (
+                        <button
+                          key={num}
+                          type="button"
+                          onClick={() =>
+                            !disable && updateTravellers("infants", num)
+                          }
+                          className={`w-8 h-8 rounded flex items-center justify-center text-sm font-medium transition-colors ${
+                            isSelected
+                              ? "bg-indigo-900 text-white"
+                              : disable
+                              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                              : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                          }`}
+                          disabled={disable}
+                        >
+                          {num}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Travel Class Section */}
+                <div className="mb-4">
+                  <div className="text-sm font-medium text-gray-900 mb-2">
+                    Choose Travel Class
+                  </div>
+                  <div className="space-y-2">
+                    {[
+                      { value: "Economy", label: "Economy" },
+                      { value: "PremiumEconomy", label: "Premium Economy" },
+                      { value: "Business", label: "Business" },
+                      { value: "First", label: "First" },
+                      { value: "All", label: "All Classes" },
+                    ].map(({ value, label }) => (
+                      <label
+                        key={value}
+                        className="flex items-center cursor-pointer"
+                      >
+                        <input
+                          type="radio"
+                          name="cabin"
+                          value={value}
+                          checked={formData.cabin === value}
+                          onChange={handleChange}
+                          className="rounded-full h-4 w-4 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">
+                          {label}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Done Button */}
+                <div className="flex justify-end">
                   <button
                     type="button"
                     onClick={() => setShowTravellerDialog(false)}
-                    className="bg-indigo-900 text-white px-4 py-1 rounded"
+                    className="bg-indigo-900 text-white px-6 py-2 rounded-md hover:bg-indigo-950 transition-colors"
                   >
                     Done
                   </button>
@@ -380,7 +444,10 @@ export default function SearchFlight() {
           </div>
         </form>
       </div>
-      <LoadingModal loading={loading} loadingMessage="Searching for flights..." />
+      <LoadingModal
+        loading={loading}
+        loadingMessage="Searching for flights..."
+      />
     </div>
   );
 }
