@@ -1,58 +1,101 @@
-import React from "react";
-import { FaPlaneDeparture } from "react-icons/fa";
-import { MdFlight } from "react-icons/md";
-import { FaHotel } from "react-icons/fa6";
-import { FaUmbrellaBeach } from "react-icons/fa";
+import React, { useState } from "react";
+import logo from "../assets/logo.svg";
 
-export default function Navbar() {
+import { IoMdAirplane, IoIosArrowDown } from "react-icons/io";
+import { FaHotel, FaUser, FaUmbrellaBeach } from "react-icons/fa";
+import { FaBell } from "react-icons/fa6";
+
+export default function Header() {
+  const [quickLinksOpen, setQuickLinksOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("Flight");
+
+  const tabs = [
+    {
+      name: "Flight",
+      icon: <IoMdAirplane className="w-5 h-5 transform rotate-45" />,
+    },
+    { name: "Hotel", icon: <FaHotel className="w-5 h-5" /> },
+    { name: "Holiday", icon: <FaUmbrellaBeach className="w-5 h-5" /> },
+  ];
+
   return (
-    <header className="bg-white shadow-md h-[120px]">
-      <div className="container mx-auto flex items-center justify-between px-6 py-4">
-        <div className="flex gap-18">
-          {/* Logo Section */}
+    <header className="bg-white shadow-md h-[110px]">
+      <div className="max-w-6xl mx-auto flex items-center justify-between px-2 py-4">
+        {/* Logo */}
+        <div className="flex items-center space-x-20">
           <div className="flex items-center space-x-2">
-            <img
-              src="/logo.png"
-              alt="AFineTrip Logo"
-              className="h-22 w-auto"
-              loading="eager"
-            />
+            <img src={logo} alt="AFineTrip" className="h-auto w-25" />
           </div>
 
-          {/* Navigation Menu */}
-          <nav className="hidden md:flex space-x-8 mt-8 mb-8 text-md font-medium">
-            <a
-              href="#"
-              className="text-indigo-900 hover:text-yellow-500 hover:underline transition inline-flex items-center space-x-2"
-            >
-              <MdFlight className="align-middle" />
-              <span>Flights</span>
-            </a>
-            <a
-              href="#"
-              className="text-indigo-900 hover:text-yellow-500 hover:underline transition inline-flex items-center space-x-2"
-            >
-              <FaHotel className="align-middle" />
-              <span>Hotels</span>
-            </a>
-            <a
-              href="#"
-              className="text-indigo-900 hover:text-yellow-500 hover:underline transition inline-flex items-center space-x-2"
-            >
-              <FaUmbrellaBeach className="align-middle" />
-              <span>Holiday</span>
-            </a>
+          <nav className="flex items-center space-x-8">
+            {tabs.map((tab) => (
+              <button
+                key={tab.name}
+                onClick={() => setActiveTab(tab.name)}
+                className={`flex items-center gap-2 sm:text-sm md:text-base pb-1 text-[#15144E] min-w-[80px] ${
+                  activeTab === tab.name ? "font-semibold " : "font-normal"
+                }`}
+              >
+                {tab.icon}
+                {tab.name}
+              </button>
+            ))}
           </nav>
         </div>
 
-        {/* Right Actions */}
-        <div className="flex items-center space-x-4">
-          <button className="hidden md:inline px-4 py-2 rounded-lg bg-yellow-500 text-white font-semibold hover:bg-yellow-600 transition">
-            Book Now
-          </button>
-          <button className="md:hidden p-2 text-indigo-900 hover:text-yellow-500">
-            <FaPlaneDeparture size={22} />
-          </button>
+        {/* Right side */}
+        <div className="flex items-center space-x-8 text-[16px] relative text-[#15144E] font-normal">
+          {/* Quick Links Dropdown */}
+          <div className="relative">
+            <div
+              className="flex items-center cursor-pointer space-x-2"
+              onClick={() => setQuickLinksOpen(!quickLinksOpen)}
+            >
+              <span>Quick Links</span>
+              <IoIosArrowDown className={`w-4 h-4`} />
+            </div>
+
+            {quickLinksOpen && (
+              <div className="absolute left-0 mt-0 w-40 bg-white shadow-md rounded-lg border border-gray-200 z-50">
+                <ul className="py-2 text-sm">
+                  <li className="px-4 py-2 cursor-pointer">Offline Request</li>
+                  <li className="px-4 py-2 cursor-pointer">Search Itinerary</li>
+                  <li className="px-4 py-2 cursor-pointer">Travel Calendar</li>
+                  <li className="px-4 py-2 cursor-pointer">Hold Itineraries</li>
+                  <li className="px-4 py-2 cursor-pointer">Notice Board</li>
+                  <li className="px-4 py-2 cursor-pointer">Recharge</li>
+                  <li className="px-4 py-2 cursor-pointer">Airline Update</li>
+                  <li className="px-4 py-2 cursor-pointer">
+                    TAX Invoice Format
+                  </li>
+                </ul>
+              </div>
+            )}
+          </div>
+
+          <FaBell className="w-5 h-5 cursor-pointer" />
+
+          <div className="relative">
+            <div
+              className="flex items-center space-x-2 cursor-pointer text-[18px]"
+              onClick={() => setProfileOpen(!profileOpen)}
+            >
+              <FaUser className="w-4 h-4" />
+              <span>Moideen Shibili</span>
+              <IoIosArrowDown className={`w-4 h-4`} />
+            </div>
+
+            {profileOpen && (
+              <div className="absolute right-0 mt-2 w-44 bg-white shadow-md rounded-lg border border-gray-200 z-50">
+                <ul className="py-2 text-sm">
+                  <li className="px-4 py-2 cursor-pointer">Profile</li>
+                  <li className="px-4 py-2 cursor-pointer">Account Settings</li>
+                  <li className="px-4 py-2 cursor-pointer">Logout</li>
+                </ul>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>

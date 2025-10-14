@@ -2,24 +2,22 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+namespace App\Models;
+
 use Illuminate\Database\Eloquent\Model;
 
 class Baggage extends Model
 {
-    use HasFactory;
-
+    protected $table = 'baggages';
     protected $fillable = [
-        'flight_id',
-        'pax_type',
-        'check_in_bag',
-        'cabin_bag',
-        'city_pair',
-        'amount',
-        'is_paid_baggage',
+        'flight_id', 'paxType', 'checkInBag', 'cabinBag',
+        'cityPair', 'amount', 'isPaidBaggage'
     ];
 
-    // Baggage belongs to a flight
+    protected $casts = [
+        'isPaidBaggage' => 'boolean',
+    ];
+
     public function flight()
     {
         return $this->belongsTo(Flight::class);

@@ -2,48 +2,43 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Flight extends Model
 {
-    use HasFactory;
-
+    protected $table = 'flights';
     protected $fillable = [
-        'booking_id',
-        'purchase_id',
-        'pnr',
-        'validating_airline',
-        'adult_count',
-        'child_count',
-        'infant_count',
-        'currency',
-        'fare_type',
-        'refundable',
-        'current_status',
-        'price_class',
-        'fop',
+        'booking_id', 'purchaseId', 'pnr', 'validatingAirline',
+        'adultCount', 'childCount', 'infantCount', 'currency',
+        'currentStatus', 'refundable', 'fareType', 'priceClass',
+        'fop', 'address', 'gst', 'miniRules', 'flightFares',
+        'meals', 'seats', 'grossFare', 'netFare', 'clientMarkup',
     ];
 
-    // Flight belongs to a booking
+    protected $casts = [
+        'address' => 'array',
+        'gst' => 'array',
+        'miniRules' => 'array',
+        'flightFares' => 'array',
+        'meals' => 'array',
+        'seats' => 'array',
+    ];
+
     public function booking()
     {
         return $this->belongsTo(Booking::class);
     }
 
-    // Flight has many passengers
     public function passengers()
     {
         return $this->hasMany(Passenger::class);
     }
 
-    // Flight has many segments
     public function segments()
     {
         return $this->hasMany(Segment::class);
     }
 
-    // Flight has many baggages (optional)
     public function baggages()
     {
         return $this->hasMany(Baggage::class);

@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import airlineLogos from "../utils/airlineLogos";
 import { GoDotFill } from "react-icons/go";
 import { IoAirplane } from "react-icons/io5";
+import { BsBagDashFill } from "react-icons/bs";
+import { MdOutlineAirlineSeatReclineExtra, MdBackpack } from "react-icons/md";
 import FareDetails from "./FareDetails";
 
 const FlightCard = ({ flight, onBook }) => {
@@ -23,8 +25,12 @@ const FlightCard = ({ flight, onBook }) => {
     return "No allowance";
   };
 
-  // Total fare calculation
-  const firstGroup = flight.fareGroups[0];
+  // Filter fare groups with fares
+  const availableFareGroups =
+    flight.fareGroups?.filter((fg) => fg.fares?.length > 0) || [];
+
+  // Calculate total fare for the first fare group
+  const firstGroup = availableFareGroups[0];
   let totalFare = 0;
   if (firstGroup && Array.isArray(firstGroup.fares)) {
     const totalBase = firstGroup.fares.reduce(
@@ -39,13 +45,16 @@ const FlightCard = ({ flight, onBook }) => {
     totalFare = totalBase + totalTax;
   }
 
- 
-
-  // const formatStops = (stops) => {
-  //   if (stops === 0) return "Non-stop";
-  //   if (stops === 1) return "1 stop";
-  //   return `${stops} stops`;
-  // };
+  // Calculate total seats remaining across all segments in all fare groups
+  const totalSeats =
+    availableFareGroups.length > 0
+      ? Math.min(
+          ...availableFareGroups.flatMap((fg) =>
+            fg.segInfos.map((seg) => seg.seatRemaining || 0)
+          )
+        )
+      : 0;
+  const seatsRemaining = totalSeats === Infinity ? 0 : totalSeats;
 
   return (
     <div className="relative p-3">
@@ -66,9 +75,7 @@ const FlightCard = ({ flight, onBook }) => {
                 {flight.airlineName}
               </p>
               <p className="text-[#15144E] font-semibold text-base">
-                {flight.airline}
-                {"-"}
-                {flight.segGroups[0]?.segs[0]?.flightNum}
+                {flight.airline}-{flight.segGroups[0]?.segs[0]?.flightNum}
               </p>
             </div>
           </div>
@@ -88,11 +95,6 @@ const FlightCard = ({ flight, onBook }) => {
                   key={idx}
                   className="flex items-center space-x-8 border-b border-gray-200 pb-3 last:border-none"
                 >
-                  {/* Trip Type */}
-                  {/* <div className="text-sm text-[#6E6E6E] font-semibold w-20">
-                    {idx === 0 ? "Outbound" : "Return"}
-                  </div> */}
-
                   {/* Departure */}
                   <div className="flex flex-col items-center">
                     <p className="text-lg font-bold text-[#15144E]">
@@ -138,14 +140,16 @@ const FlightCard = ({ flight, onBook }) => {
             })}
           </div>
 
+          {/* Fare & Book button */}
           <div className="text-center">
             <p className="font-bold text-[#15144E]">
               {flight.currency} {Math.round(totalFare)}
             </p>
-            {flight.fareGroups.length === 1 &&
-            flight.fareGroups[0].fares.length === 1 ? (
+            {availableFareGroups.length === 1 ? (
               <button
-                onClick={() => onBook(flight, flight.fareGroups[0].purchaseId)}
+                onClick={() =>
+                  onBook(flight, availableFareGroups[0].purchaseId)
+                }
                 className="mt-2 px-6 py-2 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 cursor-pointer"
               >
                 Book Now
@@ -160,10 +164,36 @@ const FlightCard = ({ flight, onBook }) => {
             )}
           </div>
         </div>
+
+        {/* Bottom section */}
+        <div className="border-t border-gray-200 mt-4 pt-3 px-6 flex flex-col md:flex-row justify-between items-center bg-gray-50 rounded-b-xl">
+
+           <div className="flex items-center text-sm text-gray-600">
+          <MdBackpack className="text-[#E5BC3B] mr-1" />
+          <span>Check-In: {formatBaggageAllowance(flight?.fareGroups[0].baggages?.[0].checkInBag)} </span>
+          </div>
+
+          <div className="flex items-center text-sm text-gray-600">
+          <BsBagDashFill className="text-[#E5BC3B] mr-1" />
+          <span className="text-sm text-gray-600">Cabin: {formatBaggageAllowance(flight?.fareGroups[0].baggages?.[0].cabinBag)} </span>
+          </div>
+
+          {/* Seat remaining */}
+          <div className="flex items-center text-sm text-gray-600">
+            <MdOutlineAirlineSeatReclineExtra className="mr-1 text-[#E5BC3B]" />
+            Seat Remaining: {seatsRemaining}
+          </div>
+
+        </div>
       </div>
 
+      {/* Fare details modal */}
       {showFares && (
-        <FareDetails flight={flight} onBook={onBook} formatBaggageAllowance={formatBaggageAllowance} />
+        <FareDetails
+          flight={flight}
+          onBook={onBook}
+          formatBaggageAllowance={formatBaggageAllowance}
+        />
       )}
     </div>
   );

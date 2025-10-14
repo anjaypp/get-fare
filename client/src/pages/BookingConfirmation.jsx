@@ -115,7 +115,7 @@ const BookingConfirmation = ({ booking }) => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6 mt-24 mb-10 px-4">
       {/* Booking Header */}
       <div className="p-8 bg-white shadow-lg rounded-2xl text-center">
         <div className="text-4xl mb-3">{getStatusIcon()}</div>

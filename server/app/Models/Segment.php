@@ -2,33 +2,27 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Segment extends Model
-{
-    use HasFactory;
-
+{   protected $table = 'segments';
     protected $fillable = [
-        'flight_id',
-        'origin',
-        'destination',
-        'departure_on',
-        'arrival_on',
-        'duration',
-        'flight_num',
-        'eqp_type',
-        'mrk_airline',
-        'dep_terminal',
-        'arr_terminal',
-        'op_airline',
-        'rbd',
-        'cabin_class',
+        'flight_id', 'isReturn', 'origin', 'destination',
+        'departureOn', 'arrivalOn', 'duration', 'flightNum',
+        'eqpType', 'mrkAirline', 'depTerminal', 'arrTerminal',
+        'opAirline', 'rbd', 'cabinClass', 'pnr', 'flightTicketStatus'
     ];
 
-    // Segment belongs to a flight
+    protected $casts = [
+        'departureOn' => 'datetime',
+        'arrivalOn' => 'datetime',
+        'isReturn' => 'boolean',
+    ];
+
     public function flight()
     {
         return $this->belongsTo(Flight::class);
     }
 }
+
+

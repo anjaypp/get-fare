@@ -5,6 +5,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import AutocompleteSelect from "./AutoCompleteSelect";
 import CustomDateInput from "../components/CustomDateInput";
+import LoadingModal from "./LoadingModal";
 import axiosClient from "../../axios-client";
 import { useNavigate } from "react-router-dom";
 
@@ -374,11 +375,12 @@ export default function SearchFlight() {
               disabled={loading}
               className="bg-indigo-900 hover:bg-indigo-950 text-white px-6 py-3 rounded-lg flex items-center gap-2 font-semibold cursor-pointer"
             >
-              <FaSearch /> {loading ? "Searching..." : "Search"}
+              <FaSearch /> {"Search"}
             </button>
           </div>
         </form>
       </div>
+      <LoadingModal loading={loading} loadingMessage="Searching for flights..." />
     </div>
   );
 }

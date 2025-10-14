@@ -8,6 +8,7 @@ use App\Models\Flight;
 use App\Models\Passenger;
 use App\Models\Segment;
 use App\Models\Baggage;
+use App\Http\Controllers\FlightController;
 use App\Services\GetFaresApi;
 
 
@@ -159,41 +160,51 @@ public function booking(Request $request, GetFaresApi $api)
 
 
     try {
-        // Step 7: Create PNR
-        $pnrResponse = $api->createPnr($payload);
-        $orderId = $pnrResponse['data']['orderId'] ?? null;
+    // Step 7 & 8: Create PNR and fetch booking
+    $pnrResponse = $api->createPnr($payload);
+    $orderId = $pnrResponse['data']['orderId'] ?? null;
 
-        if (!$orderId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'PNR creation failed, no orderId returned',
-                'data' => $pnrResponse['data'] ?? []
-            ], 400);
-        }
-
-        // Step 8: Get booking status/details
-        $bookingResponse = $api->getBooking($orderId);
-        $bookingData = $bookingResponse['data'] ?? null;
-
-        if (!$bookingData) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch booking details',
-            ], 400);
-        }
-
-        // TODO: Save bookingData to database
-
-        // Step 9: Return the booking response
-        return response()->json($bookingResponse);
-
-    } catch (\Exception $e) {
-        \Log::error('Booking Error: ' . $e->getMessage());
+    if (!$orderId) {
         return response()->json([
             'success' => false,
-            'message' => 'An error occurred: ' . $e->getMessage(),
-        ], 500);
+            'message' => 'PNR creation failed, no orderId returned',
+            'data' => $pnrResponse['data'] ?? []
+        ], 400);
     }
+
+    $bookingResponse = $api->getBooking($orderId);
+    $bookingData = $bookingResponse['data'] ?? null;
+
+    if (!$bookingData) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to fetch booking details',
+        ], 400);
+    }
+
+    // Step 9: Save booking before returning to ensure stored data matches API response
+    try {
+        $savedBooking = $api->saveBooking($bookingData);
+        // attach saved booking id for debugging
+        $bookingResponse['savedBookingId'] = $savedBooking->id ?? null;
+        \Log::info('Booking saved successfully', ['orderId' => $orderId, 'booking_id' => $savedBooking->id ?? null]);
+    } catch (\Exception $e) {
+        \Log::error('Failed to save booking: ' . $e->getMessage(), ['orderId' => $orderId]);
+        // Continue to return API response to client, but do not return DB record to avoid stale data
+    }
+
+    // Step 10: Return the API booking response (with optional savedBookingId)
+    return response()->json($bookingResponse);
+
+} catch (\Exception $e) {
+    \Log::error('Booking Error: ' . $e->getMessage());
+    return response()->json([
+        'success' => false,
+        'message' => 'An error occurred: ' . $e->getMessage(),
+    ], 500);
 }
+
+}
+
 
 }

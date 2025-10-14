@@ -1,7 +1,11 @@
 import React, { useState, Suspense } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axiosClient from "../../axios-client";
-const FlightCard = React.lazy(() => import('../components/FlightCard'));
+import LoadingModal from "../components/LoadingModal";
+import SearchSummary from "../components/SearchSummary";
+import FlightSortBar from "../components/FlightSortBar";
+const FlightCard = React.lazy(() => import("../components/FlightCard"));
+import FlightFilter from "../components/FlightFliter";
 import toast from "react-hot-toast";
 
 const SearchResults = () => {
@@ -9,9 +13,7 @@ const SearchResults = () => {
   const navigate = useNavigate();
   const [filter, setFilter] = useState("all");
   const { results } = location.state || {};
-
   const [loading, setLoading] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState("");
 
   if (!results || !results.flights) {
     return <p className="p-6">No results found. Please search again.</p>;
@@ -20,47 +22,26 @@ const SearchResults = () => {
   const handleBook = async (flight, purchaseId) => {
     try {
       setLoading(true);
-      setLoadingMessage("Checking fare availability...");
 
       const response = await axiosClient.post("/flights/revalidate", {
         traceId: results.traceId,
         purchaseIds: [String(purchaseId)],
       });
 
-      console.log(purchaseId);
-
       const revalidation = response.data;
-      console.log("Revalidation data:", revalidation);
 
-      // Defensive check
       if (!revalidation?.flights?.length) {
         toast.error("Unable to validate fare. Please try again.");
-        console.log("Revalidation response:", revalidation);
         return;
-      }
-
-      const fareGroup = revalidation.flights[0]?.fareGroups?.[0];
-      const segInfos = fareGroup?.segInfos || [];
-
-      const hasSeats = segInfos.every((seg) => seg.seatRemaining > 0);
-
-      if (!hasSeats) {
-        toast(
-          "This flight currently has no available seats. Please proceed with caution or select another option."
-        );
       }
 
       navigate("/flight-review", {
         state: { revalidation, selectedFlight: flight, purchaseId },
       });
     } catch (error) {
-      if (error.response) {
-        toast.error(
-          error.response.data.message || "Server error. Please try again."
-        );
-      } else {
-        toast.error("Network error. Please try again.");
-      }
+      toast.error(
+        error.response?.data?.message || "Network or server error. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -81,48 +62,48 @@ const SearchResults = () => {
   const flightsToShow = filteredFlights;
 
   return (
-    <div className="relative max-w-4xl mx-auto mt-2">
-  
+    <div className="w-full min-h-screen p-12 bg-[linear-gradient(300.13deg,#D9D9D9_8.16%,#FAF3DB_52.55%,#F4F4FF_106.01%)]">
+      
+      <SearchSummary />
+      
 
-      <h2 className="text-2xl font-bold mb-4">
-        Search Results ({flightsToShow.length})
-      </h2>
+      <div className="flex flex-col md:flex-row gap-6">
+        {/* Filters on left */}
+        <div className="md:w-1/4">
+          <FlightFilter />
+        </div>
 
-      <div className="mb-4">
-        <label className="mr-2 font-medium">Show:</label>
-        <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          className="border rounded px-3 py-1"
-        >
-          <option value="all">All Flights</option>
-          <option value="direct">Direct Flights</option>
-          <option value="connecting">Connecting Flights</option>
-        </select>
+        {/* Flight cards on right */}
+        <div className="md:w-3/4 flex flex-col gap-4">
+          {/* <div className="mb-4">
+            <label className="mr-2 font-medium">Show:</label>
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="border rounded px-3 py-1"
+            >
+              <option value="all">All Flights</option>
+              <option value="direct">Direct Flights</option>
+              <option value="connecting">Connecting Flights</option>
+            </select>
+          </div> */}
+          <FlightSortBar totalFlights={flightsToShow.length} />
+
+          {flightsToShow.length > 0 ? (
+            flightsToShow.map((flight, idx) => (
+              <Suspense key={flight.id || idx} fallback={<p>Loading flight...</p>}>
+                <FlightCard flight={flight} onBook={handleBook} />
+              </Suspense>
+            ))
+          ) : (
+            <p className="p-6">
+              No flights with available seats. Try different dates or destinations.
+            </p>
+          )}
+        </div>
       </div>
 
-      {flightsToShow.length > 0 ? (
-        flightsToShow.map((flight, idx) => (
-          <FlightCard
-            key={flight.id || idx}
-            flight={flight}
-            onBook={handleBook}
-          />
-        ))
-      ) : (
-        <p className="p-6">
-          No flights with available seats. Try different dates or destinations.
-        </p>
-      )}
-
-      {loading && (
-        <div className="fixed inset-0 bg-white/40 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-lg p-6 w-80 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-lg font-medium">{loadingMessage}</p>
-          </div>
-        </div>
-      )}
+      <LoadingModal loading={loading} loadingMessage="Checking fare availability..." />
     </div>
   );
 };

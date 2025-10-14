@@ -6,7 +6,9 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use App\Models\Airline;
+use App\Models\Booking;
 
 class GetFaresApi
 {
@@ -79,13 +81,13 @@ public function searchFlights(array $data)
         'childCount' => $data['childCount'],
         'infantCount' => $data['infantCount'],
         'cabinClass' => $data['cabinClass'],
-        'CabinPreferenceType' => ($data['cabinClass'] !== "Economy" && $data['cabinClass'] !== "All") ? 'Restricted' : 'Preferred',
+        'cabinPreferenceType' => ($data['cabinClass'] !== "Economy" && $data['cabinClass'] !== "All") ? 'Restricted' : 'Preferred',
         'stopOver' => 'None',
         'includecarrier' => '',
         'airTravelType' => match ($data['journeyType']) {
-            1 => 'Oneway',
+            1 => 'OneWay',
             2 => 'RoundTrip',
-            default => 'Oneway'
+            default => 'OneWay'
         },
         'includeBaggage' => true,
         'IsBrandFareEnable' => false,
@@ -261,6 +263,7 @@ public function getBooking(string $orderId)
 
     Storage::put('response/get_booking_response.json', json_encode($response->json(), JSON_PRETTY_PRINT));
 
+
     if (!$response->ok()) {
         throw new \Exception($response->body(), $response->status());
     }
@@ -269,6 +272,137 @@ public function getBooking(string $orderId)
         'success' => true,
         'data'    => $response->json(),
     ];
+}
+public function saveBooking(array $data){
+    // Make function idempotent and tolerant of different API key names.
+    $orderRefId = $data['orderRefId'] ?? $data['orderId'] ?? $data['order_id'] ?? null;
+    if (empty($orderRefId)) {
+        Log::warning('saveBooking called without orderRefId/orderId', ['payload_keys' => array_keys($data)]);
+        throw new \InvalidArgumentException('Missing orderRefId/orderId in booking data');
+    }
+
+    // Avoid duplicate inserts: if booking already exists return it
+    $existing = Booking::where('orderRefId', $orderRefId)->first();
+    if ($existing) {
+        Log::info('Booking already exists, returning existing record', ['orderRefId' => $orderRefId]);
+        return $existing;
+    }
+
+    DB::beginTransaction();
+    try {
+        $booking = Booking::create([
+            'orderRefId' => $orderRefId,
+            'traceId' => $data['traceId'] ?? null,
+            'bookingSource' => $data['bookingSource'] ?? null,
+            'clientName' => $data['clientName'] ?? null,
+            'clientEmail' => $data['clientEmail'] ?? null,
+            'endClientEmail' => $data['endClientEmail'] ?? null,
+            'endClientName' => $data['endClientName'] ?? null,
+            'clientContactNo' => $data['clientContactNo'] ?? null,
+            'airTravelType' => $data['airTravelType'] ?? null,
+        ]);
+
+        // 2️⃣ Loop through Flights
+        foreach ($data['flights'] ?? [] as $f) {
+            $flight = $booking->flights()->create([
+                'purchaseId' => $f['purchaseId'] ?? null,
+                'pnr' => $f['pnr'] ?? null,
+                'validatingAirline' => $f['validatingAirline'] ?? null,
+                'adultCount' => $f['adultCount'] ?? 0,
+                'childCount' => $f['childCount'] ?? 0,
+                'infantCount' => $f['infantCount'] ?? 0,
+                'currency' => $f['currency'] ?? null,
+                'currentStatus' => $f['currentStatus'] ?? null,
+                'refundable' => $f['refundable'] ?? false,
+                'fareType' => $f['fareType'] ?? null,
+                'priceClass' => $f['priceClass'] ?? null,
+                'fop' => $f['fop'] ?? null,
+                'address' => $f['address'] ?? null,
+                'gst' => $f['gst'] ?? null,
+                'miniRules' => $f['miniRules'] ?? null,
+                'flightFares' => $f['flightFares'] ?? null,
+                'meals' => $f['meals'] ?? null,
+                'seats' => $f['seats'] ?? null,
+                'grossFare' => $f['grossFare'] ?? 0,
+                'netFare' => $f['netFare'] ?? ($f['netfare'] ?? 0),
+                'clientMarkup' => $f['clientMarkup'] ?? 0,
+            ]);
+
+            // 3️⃣ Passengers
+            if (!empty($f['passengers'])) {
+                foreach ($f['passengers'] as $pax) {
+                    $flight->passengers()->create([
+                        'title' => $pax['title'] ?? null,
+                        'firstName' => $pax['firstName'] ?? null,
+                        'lastName' => $pax['lastName'] ?? null,
+                        'email' => $pax['email'] ?? null,
+                        'dob' => $pax['dob'] ?? null,
+                        'genderType' => $pax['genderType'] ?? null,
+                        'paxType' => $pax['paxType'] ?? null,
+                        'mobile' => $pax['mobile'] ?? null,
+                        'passportNumber' => $pax['passportNumber'] ?? null,
+                        'passengerNationality' => $pax['passengerNationality'] ?? null,
+                        'passportDOE' => $pax['passportDOE'] ?? null,
+                        'passportIssuedCountry' => $pax['passportIssuedCountry'] ?? null,
+                        'seatPref' => $pax['seatPref'] ?? null,
+                        'mealPref' => $pax['mealPref'] ?? null,
+                        'ticketNumber' => $pax['ticketNumber'] ?? null,
+                        'flightTicketStatus' => $pax['flightTicketStatus'] ?? null,
+                    ]);
+                }
+            }
+
+            // 4️⃣ Segments
+            if (!empty($f['segGroups'])) {
+                foreach ($f['segGroups'] as $sg) {
+                    if (!empty($sg['segments'])) {
+                        foreach ($sg['segments'] as $seg) {
+                            $flight->segments()->create([
+                                'isReturn' => $seg['isReturn'] ?? false,
+                                'origin' => $seg['origin'] ?? null,
+                                'destination' => $seg['destination'] ?? null,
+                                'departureOn' => $seg['departureOn'] ?? null,
+                                'arrivalOn' => $seg['arrivalOn'] ?? null,
+                                'duration' => $seg['duration'] ?? null,
+                                'flightNum' => $seg['flightNum'] ?? null,
+                                'eqpType' => $seg['eqpType'] ?? null,
+                                'mrkAirline' => $seg['mrkAirline'] ?? null,
+                                'depTerminal' => $seg['depTerminal'] ?? null,
+                                'arrTerminal' => $seg['arrTerminal'] ?? null,
+                                'opAirline' => $seg['opAirline'] ?? null,
+                                'rbd' => $seg['rbd'] ?? null,
+                                'cabinClass' => $seg['cabinClass'] ?? null,
+                                'pnr' => $seg['pnr'] ?? null,
+                                'flightTicketStatus' => $seg['flightTicketStatus'] ?? null,
+                            ]);
+                        }
+                    }
+                }
+            }
+
+            // 5️⃣ Baggage
+            if (!empty($f['baggages'])) {
+                foreach ($f['baggages'] as $b) {
+                    $flight->baggages()->create([
+                        'paxType' => $b['paxType'] ?? null,
+                        'checkInBag' => $b['checkInBag'] ?? null,
+                        'cabinBag' => $b['cabinBag'] ?? null,
+                        'cityPair' => $b['cityPair'] ?? null,
+                        'amount' => $b['amount'] ?? 0,
+                        'isPaidBaggage' => $b['isPaidBaggage'] ?? false,
+                    ]);
+                }
+            }
+        }
+
+        DB::commit();
+        Log::info('Booking saved', ['orderRefId' => $orderRefId, 'booking_id' => $booking->id]);
+        return $booking;
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Failed to save booking', ['error' => $e->getMessage(), 'payload' => $data]);
+        throw $e;
+    }
 }
 
 }
