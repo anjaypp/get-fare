@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import PriceSummary from "../components/PriceSummary";
 import LoadingModal from "../components/LoadingModal";
 import ContactDetailsForm from "../components/ContactDetailsForm";
+import Addons from "../components/Addons";
 import PassengerForm from "../components/PassengerForm";
 import { FaRegArrowAltCircleRight } from "react-icons/fa";
 
@@ -263,13 +264,13 @@ const RevalidationPage = () => {
                 key={gIdx}
                 className="bg-white border-2 border-gray-200 rounded-lg overflow-hidden"
               >
-                <div className="bg-blue-600 text-white p-4 flex justify-between items-center">
+                <div className="bg-gray-100 text-indigo-900 p-4 flex justify-between items-center">
                   <div>
                     <h3 className="text-lg font-semibold">
                       {isReturn ? "Return: " : "Outbound: "} {segGroup.origin} →{" "}
                       {segGroup.destination}
                     </h3>
-                    <p className="text-blue-100 text-sm">
+                    <p className="text-indigo-900 text-sm">
                       {formatDate(segGroup.departureOn)} •{" "}
                       {totalSegments === 1
                         ? "Non-stop"
@@ -279,7 +280,7 @@ const RevalidationPage = () => {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-blue-100 text-sm">Total Duration</p>
+                    <p className="text-indigo-900 text-sm">Total Duration</p>
                     <p className="text-lg font-semibold">
                       {formatDuration(
                         segments.reduce((t, s) => t + s.duration, 0)
@@ -382,6 +383,9 @@ const RevalidationPage = () => {
             contactData={contactData}
             onContactChange={setContactData}
           />
+
+          <h2 className="text-2xl font-semibold text-indigo-900 m-4">Addons (Optional)</h2>
+          <Addons/>
         </div>
 
         {/* Right Panel: Price Summary */}

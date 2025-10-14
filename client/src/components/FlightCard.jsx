@@ -31,19 +31,18 @@ const FlightCard = ({ flight, onBook }) => {
 
   // Calculate total fare for the first fare group
   const firstGroup = availableFareGroups[0];
-  let totalFare = 0;
-  if (firstGroup && Array.isArray(firstGroup.fares)) {
-    const totalBase = firstGroup.fares.reduce(
-      (sum, f) => sum + (f.base || 0),
-      0
-    );
-    const totalTax = firstGroup.fares.reduce(
-      (sum, f) =>
-        sum + (f.taxes ? f.taxes.reduce((tSum, t) => tSum + t.amt, 0) : 0),
-      0
-    );
-    totalFare = totalBase + totalTax;
-  }
+let totalFare = 0;
+
+if (firstGroup && firstGroup.fares && firstGroup.fares.length > 0) {
+  const firstFare = firstGroup.fares[0]; // take only the first fare
+  const base = firstFare.base || 0;
+  const tax = firstFare.taxes
+    ? firstFare.taxes.reduce((sum, t) => sum + (t.amt || 0), 0)
+    : 0;
+
+  totalFare = base + tax;
+}
+
 
   // Calculate total seats remaining across all segments in all fare groups
   const totalSeats =
