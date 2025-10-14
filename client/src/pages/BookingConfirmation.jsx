@@ -107,7 +107,7 @@ const BookingConfirmation = ({ booking }) => {
     }
 
     return (
-      <div className="max-w-3xl mx-auto p-8 bg-gray-50 rounded-2xl shadow-md text-center">
+      <div className="max-w-3xl mx-auto p-8 bg-[linear-gradient(300.13deg,#D9D9D9_8.16%,#FAF3DB_52.55%,#F4F4FF_106.01%)] rounded-2xl shadow-md text-center">
         <h2 className="text-2xl font-bold">No Flight Data Available</h2>
         <p className="text-gray-600 mt-2">
           We couldn't find flight details for this booking.

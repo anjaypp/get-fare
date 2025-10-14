@@ -472,7 +472,7 @@ const RevalidationPage = () => {
       <div className="flex gap-4 pt-4">
         <button
           onClick={() => navigate(-1)}
-          className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+          className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium cursor-pointer"
         >
           Back to Search
         </button>
@@ -481,7 +481,7 @@ const RevalidationPage = () => {
         <button
           onClick={() => handleProceedToBooking(true)}
           disabled={loading}
-          className="flex-1 px-6 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors font-medium"
+          className="flex-1 px-6 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors font-medium cursor-pointer"
         >
           Hold
         </button>
@@ -489,7 +489,7 @@ const RevalidationPage = () => {
         <button
           onClick={() => handleProceedToBooking(false)}
           disabled={loading}
-          className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium cursor-pointer"
         >
           Issue
         </button>
