@@ -1,15 +1,62 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 
 const BookingConfirmation = ({ booking }) => {
   const location = useLocation();
-  
-  // Get booking data from location state if not passed as prop
-  const bookingData = booking || location.state?.booking;
-  
-  console.log("Location state:", location.state); // Debug log
-  console.log("Booking prop:", booking); // Debug log
-  console.log("Final booking data:", bookingData); // Debug log
+  const storageKey = "gf_last_booking";
+
+  // initial booking from props or navigation state
+  const initialBooking = booking || location.state?.booking || null;
+
+  const [bookingData, setBookingData] = useState(null);
+
+  // Helper to safely parse JSON
+  const safeParse = (s) => {
+    try {
+      return s ? JSON.parse(s) : null;
+    } catch (e) {
+      void e;
+      return null;
+    }
+  };
+
+  // Choose the freshest booking to display: prefer one with newer createdOn
+  useEffect(() => {
+    const stored = safeParse(sessionStorage.getItem(storageKey));
+
+    const timeOf = (b) => {
+      if (!b) return 0;
+      const t = b.createdOn || b.createdAt || b.created_on || null;
+      const parsed = t ? Date.parse(t) : NaN;
+      return isNaN(parsed) ? 0 : parsed;
+    };
+
+    if (initialBooking) {
+      const initTime = timeOf(initialBooking);
+      const storedTime = timeOf(stored);
+
+      if (initTime >= storedTime) {
+        // initial is as-new or newer -> use and persist it
+        sessionStorage.setItem(storageKey, JSON.stringify(initialBooking));
+        setBookingData(initialBooking);
+      } else {
+        // stored is newer -> use stored
+        setBookingData(stored);
+      }
+    } else if (stored) {
+      setBookingData(stored);
+    } else {
+      setBookingData(null);
+    }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [booking, location.state]);
+
+  // Keep storage in sync if bookingData changes (e.g., client edits)
+  useEffect(() => {
+    if (bookingData)
+      sessionStorage.setItem(storageKey, JSON.stringify(bookingData));
+  }, [bookingData]);
 
   if (!bookingData) {
     return (
@@ -49,7 +96,8 @@ const BookingConfirmation = ({ booking }) => {
             Booking Request Received ⏳
           </h2>
           <p className="mt-2">
-            Order Ref ID: <span className="font-mono">{bookingData.orderRefId}</span>
+            Order Ref ID:{" "}
+            <span className="font-mono">{bookingData.orderRefId}</span>
           </p>
           <p className="mt-2 text-gray-600">
             We are verifying availability with the airline. Please wait...
@@ -70,9 +118,10 @@ const BookingConfirmation = ({ booking }) => {
 
   // Get the first flight
   const flight = bookingData.flights[0];
-  
+
   const isFailed = flight.currentStatus === "Booking_Failed";
-  const isConfirmed = flight.currentStatus === "Confirmed" || flight.currentStatus === "Ticketed";
+  const isConfirmed =
+    flight.currentStatus === "Confirmed" || flight.currentStatus === "Ticketed";
 
   const formatDateTime = (dt) => {
     if (!dt) return "N/A";
@@ -103,8 +152,10 @@ const BookingConfirmation = ({ booking }) => {
   };
 
   const getStatusMessage = () => {
-    if (isConfirmed) return "Your flight booking is confirmed. Thank you for booking with us!";
-    if (isFailed) return "We couldn't complete your booking. See details below.";
+    if (isConfirmed)
+      return "Your flight booking is confirmed. Thank you for booking with us!";
+    if (isFailed)
+      return "We couldn't complete your booking. See details below.";
     return "We are waiting for airline confirmation. Please check back soon.";
   };
 
@@ -125,13 +176,17 @@ const BookingConfirmation = ({ booking }) => {
         <p className="mt-2 text-gray-600">{getStatusMessage()}</p>
         <p className="mt-4 text-gray-500">
           Booking Reference:{" "}
-          <span className="font-mono text-blue-600">{bookingData.orderRefId}</span>
+          <span className="font-mono text-blue-600">
+            {bookingData.orderRefId}
+          </span>
         </p>
 
         <p className="mt-4 text-gray-500">
-          PNR: {" "}
-          <span className="font-mono text-blue-600">{bookingData.flights[0]?.pnr || 'Not available'}</span>
-          </p>
+          PNR:{" "}
+          <span className="font-mono text-blue-600">
+            {bookingData.flights[0]?.pnr || "Not available"}
+          </span>
+        </p>
 
         {bookingData.createdOn && (
           <p className="text-sm text-gray-400 mt-2">
@@ -145,45 +200,60 @@ const BookingConfirmation = ({ booking }) => {
         <h3 className="font-semibold text-lg mb-3">✈️ Flight Summary</h3>
         <div className="mb-4">
           <p className="text-sm text-gray-600">
-            <span className="font-semibold">Airline:</span> {flight.validatingAirline} | 
-            <span className="font-semibold ml-2">Status:</span> {flight.currentStatus} |
-            <span className="font-semibold ml-2">Passengers:</span> {flight.adultCount} Adult(s)
+            <span className="font-semibold">Airline:</span>{" "}
+            {flight.validatingAirline} |
+            <span className="font-semibold ml-2">Status:</span>{" "}
+            {flight.currentStatus} |
+            <span className="font-semibold ml-2">Passengers:</span>{" "}
+            {flight.adultCount} Adult(s)
             {flight.childCount > 0 && `, ${flight.childCount} Child(ren)`}
             {flight.infantCount > 0 && `, ${flight.infantCount} Infant(s)`}
           </p>
         </div>
-        
-        {flight.segGroups && flight.segGroups.map((group, i) => (
-          <div key={i} className="p-4 mb-4 border rounded-lg bg-gray-50">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="font-bold text-lg">
-                  {group.origin} → {group.destination}
-                </p>
-                {group.segments && group.segments.map((segment, segIndex) => (
-                  <div key={segIndex} className="mt-2 pl-4 border-l-2 border-blue-200">
-                    <p className="text-sm font-medium">
-                      {segment.origin} → {segment.destination}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      {segment.mrkAirline} {segment.flightNum} • {segment.eqpType} • {segment.cabinClass}
-                    </p>
-                    <div className="flex gap-4 text-xs text-gray-500 mt-1">
-                      <span>Dep: {formatDateTime(segment.departureOn)}</span>
-                      <span>Arr: {formatDateTime(segment.arrivalOn)}</span>
-                      <span>Duration: {Math.floor(segment.duration / 60)}h {segment.duration % 60}m</span>
-                    </div>
-                    {segment.depTerminal && (
-                      <p className="text-xs text-gray-500">
-                        Terminal: {segment.depTerminal} → {segment.arrTerminal || 'N/A'}
-                      </p>
-                    )}
-                  </div>
-                ))}
+
+        {flight.segGroups &&
+          flight.segGroups.map((group, i) => (
+            <div key={i} className="p-4 mb-4 border rounded-lg bg-gray-50">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="font-bold text-lg">
+                    {group.origin} → {group.destination}
+                  </p>
+                  {group.segments &&
+                    group.segments.map((segment, segIndex) => (
+                      <div
+                        key={segIndex}
+                        className="mt-2 pl-4 border-l-2 border-blue-200"
+                      >
+                        <p className="text-sm font-medium">
+                          {segment.origin} → {segment.destination}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {segment.mrkAirline} {segment.flightNum} •{" "}
+                          {segment.eqpType} • {segment.cabinClass}
+                        </p>
+                        <div className="flex gap-4 text-xs text-gray-500 mt-1">
+                          <span>
+                            Dep: {formatDateTime(segment.departureOn)}
+                          </span>
+                          <span>Arr: {formatDateTime(segment.arrivalOn)}</span>
+                          <span>
+                            Duration: {Math.floor(segment.duration / 60)}h{" "}
+                            {segment.duration % 60}m
+                          </span>
+                        </div>
+                        {segment.depTerminal && (
+                          <p className="text-xs text-gray-500">
+                            Terminal: {segment.depTerminal} →{" "}
+                            {segment.arrTerminal || "N/A"}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
       </div>
 
       {/* Passenger Info */}
@@ -197,7 +267,7 @@ const BookingConfirmation = ({ booking }) => {
               </p>
               <div className="text-sm text-gray-600 mt-1">
                 <span>Gender: {p.genderType} | </span>
-                <span>DOB: {p.dob ? p.dob.split("T")[0] : 'N/A'} | </span>
+                <span>DOB: {p.dob ? p.dob.split("T")[0] : "N/A"} | </span>
                 <span>Type: {p.paxType}</span>
               </div>
               {p.email && (
@@ -207,7 +277,9 @@ const BookingConfirmation = ({ booking }) => {
                 <p className="text-sm text-gray-600">Mobile: {p.mobile}</p>
               )}
               {p.passportNumber && (
-                <p className="text-sm text-gray-600">Passport: {p.passportNumber}</p>
+                <p className="text-sm text-gray-600">
+                  Passport: {p.passportNumber}
+                </p>
               )}
             </div>
           ))}
@@ -246,16 +318,19 @@ const BookingConfirmation = ({ booking }) => {
               <div className="mt-1 text-gray-600">
                 {rule.changeAllowed && (
                   <span className="mr-4">
-                    ✅ Changes allowed (Fee: ₹{rule.exgAmt?.toFixed(2) || '0'})
+                    ✅ Changes allowed (Fee: ₹{rule.exgAmt?.toFixed(2) || "0"})
                   </span>
                 )}
                 {rule.cancelAllowed && (
                   <span>
-                    ✅ Cancellation allowed (Fee: ₹{rule.canAmt?.toFixed(2) || '0'})
+                    ✅ Cancellation allowed (Fee: ₹
+                    {rule.canAmt?.toFixed(2) || "0"})
                   </span>
                 )}
                 {!rule.changeAllowed && !rule.cancelAllowed && (
-                  <span className="text-red-600">❌ No changes or cancellations allowed</span>
+                  <span className="text-red-600">
+                    ❌ No changes or cancellations allowed
+                  </span>
                 )}
               </div>
             </div>
@@ -270,21 +345,25 @@ const BookingConfirmation = ({ booking }) => {
           {flight.flightFares.map((fare, i) => (
             <div key={i} className="mb-4 p-3 bg-gray-50 rounded-lg">
               <p className="font-medium">
-                {fare.paxType === 'ADT' ? 'Adult' : fare.paxType === 'CHD' ? 'Child' : 'Infant'}
+                {fare.paxType === "ADT"
+                  ? "Adult"
+                  : fare.paxType === "CHD"
+                  ? "Child"
+                  : "Infant"}
               </p>
               <div className="text-sm text-gray-600 mt-2">
-                <p>Base Fare: ₹{fare.baseFare?.toLocaleString() || 'N/A'}</p>
-                {fare.taxes && fare.taxes.map((tax, taxIndex) => (
-                  <p key={taxIndex}>
-                    {tax.code}: ₹{tax.amt?.toLocaleString() || 'N/A'}
-                  </p>
-                ))}
+                <p>Base Fare: ₹{fare.baseFare?.toLocaleString() || "N/A"}</p>
+                {fare.taxes &&
+                  fare.taxes.map((tax, taxIndex) => (
+                    <p key={taxIndex}>
+                      {tax.code}: ₹{tax.amt?.toLocaleString() || "N/A"}
+                    </p>
+                  ))}
               </div>
             </div>
           ))}
         </div>
       )}
-
 
       {/* Actions */}
       <div className="text-center">
