@@ -4,6 +4,7 @@ import logo from "../assets/logo.svg";
 import { IoMdAirplane, IoIosArrowDown } from "react-icons/io";
 import { FaHotel, FaUser, FaUmbrellaBeach } from "react-icons/fa";
 import { FaBell } from "react-icons/fa6";
+import { Link } from "react-router-dom";
 
 export default function Header() {
   const [quickLinksOpen, setQuickLinksOpen] = useState(false);
@@ -30,8 +31,9 @@ export default function Header() {
 
           <nav className="flex items-center space-x-8">
             {tabs.map((tab) => (
-              <button
+              <Link
                 key={tab.name}
+                to={'/'}
                 onClick={() => setActiveTab(tab.name)}
                 className={`flex items-center gap-2 sm:text-sm md:text-base pb-1 text-[#15144E] min-w-[80px] ${
                   activeTab === tab.name ? "font-semibold " : "font-normal"
@@ -39,7 +41,7 @@ export default function Header() {
               >
                 {tab.icon}
                 {tab.name}
-              </button>
+              </Link>
             ))}
           </nav>
         </div>
