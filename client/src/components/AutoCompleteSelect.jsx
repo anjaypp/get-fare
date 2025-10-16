@@ -8,6 +8,7 @@ const AutocompleteSelect = ({
   onSelect,
   placeholder,
   value, // Current selected value
+  hideSelectedInInput = false,
 }) => {
   const [query, setQuery] = useState("");
   const [items, setItems] = useState([]);
@@ -30,13 +31,15 @@ const AutocompleteSelect = ({
         setItems([]);
         return;
       }
-      
+
       setIsLoading(true);
       try {
         const trimmedQuery = searchQuery.trim();
         const { data } = await axiosClient.get(
           `${endpoint}?query=${trimmedQuery}`,
-          { headers: { "Cache-Control": "no-cache, no-store, must-revalidate" } }
+          {
+            headers: { "Cache-Control": "no-cache, no-store, must-revalidate" },
+          }
         );
         setItems(Array.isArray(data) ? data : []);
       } catch (err) {
@@ -55,7 +58,7 @@ const AutocompleteSelect = ({
     } else {
       setItems([]);
     }
-    
+
     return () => fetchItems.cancel?.();
   }, [query, fetchItems]);
 
@@ -72,8 +75,10 @@ const AutocompleteSelect = ({
   };
 
   const displayValue = (item) => {
+    if (hideSelectedInInput) return query || ""; // keep showing user's query
     if (!item) return "";
-    return `${item.city || item.code} (${item.code})`;
+    // show the code in the input; the dropdown shows code on first line and name on the second
+    return item.city || "";
   };
 
   return (
@@ -81,15 +86,15 @@ const AutocompleteSelect = ({
       <Combobox value={selectedItem} onChange={handleSelect}>
         <div className="relative">
           <Combobox.Input
-            className="w-full bg-white/10 border border-white/20 px-3 py-2 rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full bg-transparent border-none rounded-md text-[28px] text-indigo-950 text-semibold placeholder-gray-500 focus:outline-none"
             displayValue={displayValue}
             autoComplete="off"
             onChange={handleInputChange}
             placeholder={placeholder || `Search ${type}s...`}
           />
-          
+
           {(query.length >= 2 || items.length > 0) && (
-            <Combobox.Options className="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-white border border-gray-200 shadow-lg z-10">
+            <Combobox.Options className="absolute mt-1 max-h-60 w-lg overflow-auto rounded-md bg-white border border-gray-200 shadow-lg z-50">
               {isLoading ? (
                 <div className="px-4 py-2 text-gray-500">Loading...</div>
               ) : items.length === 0 && query.length >= 2 ? (
@@ -105,7 +110,10 @@ const AutocompleteSelect = ({
                       }`
                     }
                   >
-                    {`${item.name} (${item.code}) - ${item.city}, ${item.country}`}
+                    <div className="flex flex-col">
+                      <span className="text-base font-medium">{item.city} ({item.code})</span>
+                      <span className="text-xs text-gray-500">{item.name}</span>
+                    </div>
                   </Combobox.Option>
                 ))
               )}

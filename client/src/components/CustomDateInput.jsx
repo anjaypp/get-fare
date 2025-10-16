@@ -1,7 +1,8 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef } from "react";
 import { format } from "date-fns";
 
-const CustomDateInput = forwardRef(({ value, onClick, label, placeholder }, ref) => {
+const CustomDateInput = forwardRef(
+  ({ value, onClick, label, placeholder }, ref) => {
     const dateObj = value ? new Date(value) : null;
 
     return (
@@ -10,21 +11,28 @@ const CustomDateInput = forwardRef(({ value, onClick, label, placeholder }, ref)
         ref={ref}
         className="col-span-1 rounded-lg px-3 py-2 cursor-pointer"
       >
-        <label className="block text-xs font-medium text-indigo-900">{label}</label>
+        <label className="block text-xs font-medium text-indigo-950 mb-2">
+          {label}
+        </label>
 
         {dateObj ? (
           <div>
-            <div className="text-xl font-bold">
+            <div className="text-[28px] font-bold text-indigo-950">
               {format(dateObj, "d")}{" "}
-              <span className="text-sm font-medium">{format(dateObj, "MMM''yy")}</span>
+              <span className="text-[26px] font-medium">
+                {format(dateObj, "MMM''yy")}
+              </span>
             </div>
-            <div className="text-sm text-gray-600">{format(dateObj, "EEEE")}</div>
+            <div className="text-sm text-indigo-950">
+              {format(dateObj, "EEEE")}
+            </div>
           </div>
         ) : (
           <div className="text-sm text-gray-400">{placeholder}</div>
         )}
       </div>
     );
-  });
+  }
+);
 
-export default CustomDateInput
+export default CustomDateInput;

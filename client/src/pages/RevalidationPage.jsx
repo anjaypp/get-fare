@@ -371,25 +371,53 @@ const RevalidationPage = () => {
             );
           })}
 
-           <h2 className="text-2xl font-semibold text-indigo-900 m-4">Passenger Information</h2>
+          <h2 className="text-2xl font-semibold text-indigo-900 m-4">
+            Passenger Information
+          </h2>
           <PassengerForm
             passengerFields={passengerFields}
             flight={flight}
             onPassengerDataChange={handlePassengerDataChange}
           />
 
-          <h2 className="text-2xl font-semibold text-indigo-900 m-4">Contact Details</h2>
+          <h2 className="text-2xl font-semibold text-indigo-900 m-4">
+            Contact Details
+          </h2>
           <ContactDetailsForm
             contactData={contactData}
             onContactChange={setContactData}
           />
 
-          <h2 className="text-2xl font-semibold text-indigo-900 m-4">Addons (Optional)</h2>
-          <Addons/>
+          <h2 className="text-2xl font-semibold text-indigo-900 m-4">
+            Addons (Optional)
+          </h2>
+          <Addons />
         </div>
 
         {/* Right Panel: Price Summary */}
-        <PriceSummary flight={flight} fareGroup={fareGroup} />
+        <div className="lg:col-span-1 relative">
+          <PriceSummary flight={flight} fareGroup={fareGroup} />
+
+          {/* Sticky action buttons */}
+          <div className="sticky bottom-4 mt-6 flex gap-4">
+            {flight?.isHold && (
+              <button
+                onClick={() => handleProceedToBooking(true)}
+                disabled={loading}
+                className="flex-1 px-6 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors font-medium cursor-pointer"
+              >
+                Hold
+              </button>
+            )}
+            <button
+              onClick={() => handleProceedToBooking(false)}
+              disabled={loading}
+              className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium cursor-pointer"
+            >
+              Issue
+            </button>
+          </div>
+        </div>
       </div>
 
       {isFareRulesOpen && (
@@ -468,7 +496,7 @@ const RevalidationPage = () => {
         </div>
       )}
 
-      {/* Action Buttons */}
+      {/* Action Buttons
       <div className="flex gap-4 pt-4">
         <button
           onClick={() => navigate(-1)}
@@ -476,16 +504,16 @@ const RevalidationPage = () => {
         >
           Back to Search
         </button>
-        
-      {flight?.isHold && (
-        <button
-          onClick={() => handleProceedToBooking(true)}
-          disabled={loading}
-          className="flex-1 px-6 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors font-medium cursor-pointer"
-        >
-          Hold
-        </button>
-      )}
+
+        {flight?.isHold && (
+          <button
+            onClick={() => handleProceedToBooking(true)}
+            disabled={loading}
+            className="flex-1 px-6 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors font-medium cursor-pointer"
+          >
+            Hold
+          </button>
+        )}
         <button
           onClick={() => handleProceedToBooking(false)}
           disabled={loading}
@@ -493,8 +521,7 @@ const RevalidationPage = () => {
         >
           Issue
         </button>
-
-      </div>
+      </div> */}
       <LoadingModal
         loading={loading}
         loadingMessage="Processing your request..."

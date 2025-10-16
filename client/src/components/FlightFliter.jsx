@@ -29,7 +29,7 @@ const FlightFilter = () => {
       {/* Stops */}
       <div className="mb-6">
         <h4 className="font-semibold mb-3 text-base">Stops</h4>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-row gap-2">
           {["0 Stop", "1 Stop", "1+ Stop"].map((stop) => (
             <label key={stop} className="flex items-center gap-2 text-sm">
               <input

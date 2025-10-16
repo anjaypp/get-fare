@@ -18,7 +18,7 @@ const Offers = () => {
           <div className="pt-16">
             <h3 className="text-lg font-bold mb-1">Direct Flights</h3>
             <p className="text-sm text-gray-600 mb-4">From Hong Kong to Hyderabad</p>
-            <button className="text-indigo-900 px-4 py-2 rounded-full text-sm font-semibold hover:bg-indigo-800 transition-colors absolute bottom-4 right-4">
+            <button className="text-indigo-900 px-4 py-2 rounded-full text-sm font-semibold hover:bg-indigo-800 hover:text-white transition-colors absolute bottom-4 right-4">
               BOOK NOW
             </button>
           </div>
@@ -34,7 +34,7 @@ const Offers = () => {
           <div className="pt-16">
             <h3 className="text-lg font-bold mb-1">Hyderabad to Ho Chi Minh</h3>
             <p className="text-sm text-gray-600 mb-4">Round-trip deals</p>
-            <button className="text-indigo-900 px-4 py-2 rounded-full text-sm font-semibold hover:bg-indigo-800 transition-colors absolute bottom-4 right-4">
+            <button className="text-indigo-900 px-4 py-2 rounded-full text-sm font-semibold hover:bg-indigo-800 hover:text-white transition-colors absolute bottom-4 right-4">
               BOOK NOW
             </button>
           </div>
@@ -50,7 +50,7 @@ const Offers = () => {
           <div className="pt-16">
             <h3 className="text-lg font-bold mb-1">Discover Dubai</h3>
             <p className="text-sm text-gray-600 mb-4">Luxury escapes</p>
-            <button className="text-indigo-900 px-4 py-2 rounded-full text-sm font-semibold hover:bg-indigo-800 transition-colors absolute bottom-4 right-4">
+            <button className="text-indigo-900 px-4 py-2 rounded-full text-sm font-semibold hover:bg-indigo-800 hover:text-white transition-colors absolute bottom-4 right-4">
               BOOK NOW
             </button>
           </div>
@@ -66,7 +66,7 @@ const Offers = () => {
           <div className="pt-16">
             <h3 className="text-lg font-bold mb-1">Explore India’s colors</h3>
             <p className="text-sm text-gray-600 mb-4">Cultural adventures</p>
-            <button className="text-indigo-900 px-4 py-2 rounded-full text-sm font-semibold hover:bg-indigo-800 transition-colors absolute bottom-4 right-4">
+            <button className="text-indigo-900 px-4 py-2 rounded-full text-sm font-semibold hover:bg-indigo-800 hover:text-white transition-colors absolute bottom-4 right-4">
               BOOK NOW
             </button>
           </div>

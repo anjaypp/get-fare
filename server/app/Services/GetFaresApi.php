@@ -111,20 +111,28 @@ public function searchFlights(array $data)
         $airlines = Airline::whereIn('Iata_code', $airlineCodes)->get();
         $airlineMap = $airlines->pluck('Airline_name', 'Iata_code');
 
+        $filteredFlights = [];
         foreach ($flights as &$flight) {
             $flight['airlineName'] = $airlineMap[$flight['airline']] ?? $flight['airline'];
 
-            $isDirect = true;
-            foreach ($flight['segGroups'] as $segGroup) {
-                if (count($segGroup['segs']) > 1) {
-                    $isDirect = false;
-                    break;
+
+            // Remove flights with no available seats
+            $hasAvailableSeat = false;
+            foreach ($flight['fareGroups'] ?? [] as $fareGroup) {
+                foreach ($fareGroup['segInfos'] ?? [] as $seg) {
+                    if (!empty($seg['seatRemaining']) && $seg['seatRemaining'] > 0) {
+                        $hasAvailableSeat = true;
+                        break 2; // exit both loops immediately
+                    }
                 }
             }
-            $flight['isDirect'] = $isDirect;
+
+            if ($hasAvailableSeat) {
+                $filteredFlights[] = $flight;
+            }
         }
 
-        $results['flights'] = $flights;
+        $results['flights'] = array_values($filteredFlights);
     }
 
     return $results;
@@ -151,13 +159,7 @@ public function revalidate(array $data)
             ->timeout(25)
             ->post($this->baseUrl . 'Flights/Revalidation/v1', $payload);
 
-        // Log::info('Flights Revalidation API call', [
-        //     'endpoint' => $this->baseUrl . 'Flights/Revalidation/v1',
-        //     'payload'  => json_encode($payload, JSON_PRETTY_PRINT),
-        //     'status'   => $response->status(),
-        //     'response' => json_encode($response->json(), JSON_PRETTY_PRINT),
-        // ]);
-
+            
         if($response->status() == 204){
             Storage::put('response/revalidate_response.json', json_encode($response->json(), JSON_PRETTY_PRINT));
         }
@@ -214,7 +216,7 @@ public function revalidate(array $data)
     }
 
     return $passenger;
-}, $data['passengers']);
+    }, $data['passengers']);
 
 
     $payload = [
@@ -299,7 +301,7 @@ public function saveBooking(array $data){
             'airTravelType' => $data['airTravelType'] ?? null,
         ]);
 
-        // 2️⃣ Loop through Flights
+        // Loop through Flights
         foreach ($data['flights'] ?? [] as $f) {
             $flight = $booking->flights()->create([
                 'purchaseId' => $f['purchaseId'] ?? null,
@@ -325,7 +327,7 @@ public function saveBooking(array $data){
                 'clientMarkup' => $f['clientMarkup'] ?? 0,
             ]);
 
-            // 3️⃣ Passengers
+            // Passengers
             if (!empty($f['passengers'])) {
                 foreach ($f['passengers'] as $pax) {
                     $flight->passengers()->create([
@@ -349,7 +351,7 @@ public function saveBooking(array $data){
                 }
             }
 
-            // 4️⃣ Segments
+            // Segments
             if (!empty($f['segGroups'])) {
                 foreach ($f['segGroups'] as $sg) {
                     if (!empty($sg['segments'])) {
@@ -377,7 +379,7 @@ public function saveBooking(array $data){
                 }
             }
 
-            // 5️⃣ Baggage
+            // Baggage
             if (!empty($f['baggages'])) {
                 foreach ($f['baggages'] as $b) {
                     $flight->baggages()->create([

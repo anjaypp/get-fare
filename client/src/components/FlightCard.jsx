@@ -3,11 +3,14 @@ import airlineLogos from "../utils/airlineLogos";
 import { GoDotFill } from "react-icons/go";
 import { IoAirplane } from "react-icons/io5";
 import { BsBagDashFill } from "react-icons/bs";
+import { IoIosArrowDown, IoIosArrowUp } from "react-icons/io";
 import { MdOutlineAirlineSeatReclineExtra, MdBackpack } from "react-icons/md";
 import FareDetails from "./FareDetails";
+import OnwardFlights from "./OnwardFlights";
 
 const FlightCard = ({ flight, onBook }) => {
   const [showFares, setShowFares] = useState(false);
+  const [showFlightDetails, setShowFlightDetails] = useState(false);
 
   // Extract weight in kg from string
   const extractWeightKg = (text) => {
@@ -31,18 +34,17 @@ const FlightCard = ({ flight, onBook }) => {
 
   // Calculate total fare for the first fare group
   const firstGroup = availableFareGroups[0];
-let totalFare = 0;
+  let totalFare = 0;
 
-if (firstGroup && firstGroup.fares && firstGroup.fares.length > 0) {
-  const firstFare = firstGroup.fares[0]; // take only the first fare
-  const base = firstFare.base || 0;
-  const tax = firstFare.taxes
-    ? firstFare.taxes.reduce((sum, t) => sum + (t.amt || 0), 0)
-    : 0;
+  if (firstGroup && firstGroup.fares && firstGroup.fares.length > 0) {
+    const firstFare = firstGroup.fares[0]; // take only the first fare
+    const base = firstFare.base || 0;
+    const tax = firstFare.taxes
+      ? firstFare.taxes.reduce((sum, t) => sum + (t.amt || 0), 0)
+      : 0;
 
-  totalFare = base + tax;
-}
-
+    totalFare = base + tax;
+  }
 
   // Calculate total seats remaining across all segments in all fare groups
   const totalSeats =
@@ -56,12 +58,12 @@ if (firstGroup && firstGroup.fares && firstGroup.fares.length > 0) {
   const seatsRemaining = totalSeats === Infinity ? 0 : totalSeats;
 
   return (
-    <div className="relative p-3">
-      <div className="bg-white p-2 rounded-xl shadow-md mb-6">
+    <div className="relative">
+      <div className="bg-white rounded-xl shadow-md mb-2">
         {/* Top section */}
         <div className="p-6 flex justify-between items-center">
           <div className="flex-col items-center space-x-4">
-            <div className="w-14 h-14 rounded-lg flex items-center justify-center">
+            <div className="w-14 h-14 border border-gray-100 rounded-sm flex items-center justify-center mb-2">
               <img
                 src={airlineLogos[flight.airline]}
                 alt={flight.airline}
@@ -142,14 +144,19 @@ if (firstGroup && firstGroup.fares && firstGroup.fares.length > 0) {
           {/* Fare & Book button */}
           <div className="text-center">
             <p className="font-bold text-[#15144E]">
-              {flight.currency} {Math.round(totalFare)}
+              {new Intl.NumberFormat("en-IN", {
+                style: "currency",
+                currency: flight.currency,
+                maximumFractionDigits: 0,
+              }).format(totalFare)}
             </p>
+
             {availableFareGroups.length === 1 ? (
               <button
                 onClick={() =>
                   onBook(flight, availableFareGroups[0].purchaseId)
                 }
-                className="mt-2 px-6 py-2 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 cursor-pointer"
+                className="mt-2 px-6 py-2 bg-indigo-950 text-white text-sm rounded-md hover:bg-indigo-900 cursor-pointer"
               >
                 Book Now
               </button>
@@ -164,36 +171,67 @@ if (firstGroup && firstGroup.fares && firstGroup.fares.length > 0) {
           </div>
         </div>
 
+        {/* Fare details modal */}
+        {showFares && (
+          <FareDetails
+            flight={flight}
+            onBook={onBook}
+            formatBaggageAllowance={formatBaggageAllowance}
+          />
+        )}
+
         {/* Bottom section */}
-        <div className="border-t border-gray-200 mt-4 pt-3 px-6 flex flex-col md:flex-row justify-between items-center bg-gray-50 rounded-b-xl">
+        {/* Bottom Section: Info + Toggle */}
+        <div className="border-t border-gray-200 p-2 px-6 flex flex-col md:flex-row justify-between items-center bg-gray-50 rounded-b-xl">
+          {/* Left group: Check-In, Cabin, Seat Remaining */}
+          <div className="flex space-x-7 items-center text-sm text-gray-600">
+            <div className="flex items-center">
+              <MdBackpack className="text-[#E5BC3B] mr-1" />
+              <span>
+                Check-In:{" "}
+                {formatBaggageAllowance(
+                  flight?.fareGroups[0].baggages?.[0].checkInBag
+                )}
+              </span>
+            </div>
 
-           <div className="flex items-center text-sm text-gray-600">
-          <MdBackpack className="text-[#E5BC3B] mr-1" />
-          <span>Check-In: {formatBaggageAllowance(flight?.fareGroups[0].baggages?.[0].checkInBag)} </span>
+            <div className="flex items-center">
+              <BsBagDashFill className="text-[#E5BC3B] mr-1" />
+              <span>
+                Cabin:{" "}
+                {formatBaggageAllowance(
+                  flight?.fareGroups[0].baggages?.[0].cabinBag
+                )}
+              </span>
+            </div>
+
+            <div className="flex items-center">
+              <MdOutlineAirlineSeatReclineExtra className="mr-1 text-[#E5BC3B]" />
+              Seat Remaining: {seatsRemaining}
+            </div>
           </div>
 
-          <div className="flex items-center text-sm text-gray-600">
-          <BsBagDashFill className="text-[#E5BC3B] mr-1" />
-          <span className="text-sm text-gray-600">Cabin: {formatBaggageAllowance(flight?.fareGroups[0].baggages?.[0].cabinBag)} </span>
-          </div>
-
-          {/* Seat remaining */}
-          <div className="flex items-center text-sm text-gray-600">
-            <MdOutlineAirlineSeatReclineExtra className="mr-1 text-[#E5BC3B]" />
-            Seat Remaining: {seatsRemaining}
-          </div>
-
+          {/* Right: Flight Details toggle */}
+          <button
+            onClick={() => setShowFlightDetails((prev) => !prev)}
+            className="mt-2 md:mt-0 flex items-center space-x-1 text-sm text-indigo-950 font-medium focus:outline-none hover:text-indigo-800"
+          >
+            <span>Flight Details</span>
+            {showFlightDetails ? (
+              <IoIosArrowUp className="text-indigo-950" />
+            ) : (
+              <IoIosArrowDown className="text-indigo-950" />
+            )}
+          </button>
         </div>
-      </div>
 
-      {/* Fare details modal */}
-      {showFares && (
-        <FareDetails
-          flight={flight}
-          onBook={onBook}
-          formatBaggageAllowance={formatBaggageAllowance}
-        />
-      )}
+        {/* Flight Details section BELOW the bottom bar */}
+        {showFlightDetails && (
+          <div className="p-1 bg-gray-50 border-t border-gray-100 rounded-b-xl">
+            <OnwardFlights flight={flight} />
+          </div>
+        )}
+      </div>
     </div>
   );
 };

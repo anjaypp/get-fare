@@ -44,7 +44,6 @@ const SearchSummary = () => {
           {[
             { label: "Direct Flight", checked: filters.directFlight },
             { label: "Nearby Airport", checked: filters.nearbyAirport },
-            { label: "Student Fare", checked: filters.studentFare },
             { label: "Sr.Citizen Fare", checked: filters.seniorCitizenFare },
           ].map((filter) => (
             <label
