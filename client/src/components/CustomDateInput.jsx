@@ -2,8 +2,14 @@ import React, { forwardRef } from "react";
 import { format } from "date-fns";
 
 const CustomDateInput = forwardRef(
-  ({ value, onClick, label, placeholder }, ref) => {
+  ({ value, onClick, label, placeholder, size = "default" }, ref) => {
     const dateObj = value ? new Date(value) : null;
+
+    const dayClass =
+      size === "summary" ? "text-lg font-bold" : "text-[28px] font-bold";
+    const monthClass =
+      size === "summary" ? "text-lg font-bold" : "text-[28px] font-bold";
+    const weekdayClass = "text-sm";
 
     return (
       <div
@@ -16,17 +22,23 @@ const CustomDateInput = forwardRef(
         </label>
 
         {dateObj ? (
-          <div>
-            <div className="text-[28px] font-bold text-indigo-950">
-              {format(dateObj, "d")}{" "}
-              <span className="text-[26px] font-medium">
-                {format(dateObj, "MMM''yy")}
-              </span>
+          size === "summary" ? (
+            <div className="flex items-baseline gap-2 text-indigo-950">
+              <span className={dayClass}>{format(dateObj, "d")}</span>
+              <span className={monthClass}>{format(dateObj, "MMM''yy")}</span>
+              <span className={weekdayClass}>{format(dateObj, "EEEE")}</span>
             </div>
-            <div className="text-sm text-indigo-950">
-              {format(dateObj, "EEEE")}
+          ) : (
+            <div>
+              <div className={`flex items-baseline gap-1 text-indigo-950`}>
+                <span className={dayClass}>{format(dateObj, "d")}</span>
+                <span className={monthClass}>{format(dateObj, "MMM''yy")}</span>
+              </div>
+              <div className={`${weekdayClass} text-indigo-950`}>
+                {format(dateObj, "EEEE")}
+              </div>
             </div>
-          </div>
+          )
         ) : (
           <div className="text-sm text-gray-400">{placeholder}</div>
         )}

@@ -367,6 +367,7 @@ export default function SearchFlight() {
                   </div>
 
                   {/* Infants Section */}
+                  {/* Infants Section */}
                   <div className="mb-4">
                     <div className="text-sm font-medium text-gray-900 mb-1">
                       Infant
@@ -375,10 +376,14 @@ export default function SearchFlight() {
                       (Below 2 YRS)
                     </div>
                     <div className="flex space-x-1">
-                      {Array.from({ length: 10 }, (_, i) => i).map((num) => {
+                      {Array.from(
+                        { length: formData.adults + 1 },
+                        (_, i) => i
+                      ).map((num) => {
                         const isSelected = formData.infants === num;
                         const totalOtherTravellers =
                           formData.adults + formData.children;
+                        // Still prevent total > 9
                         const disable = totalOtherTravellers + num > 9;
                         return (
                           <button

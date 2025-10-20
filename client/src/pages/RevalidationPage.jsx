@@ -7,7 +7,8 @@ import LoadingModal from "../components/LoadingModal";
 import ContactDetailsForm from "../components/ContactDetailsForm";
 import Addons from "../components/Addons";
 import PassengerForm from "../components/PassengerForm";
-import { FaRegArrowAltCircleRight } from "react-icons/fa";
+import { FaRegArrowAltCircleRight, FaSuitcase, FaInfoCircle } from "react-icons/fa";
+import { MdAirplanemodeActive } from "react-icons/md";
 
 const RevalidationPage = () => {
   const [isFareRulesOpen, setIsFareRulesOpen] = useState(false);
@@ -255,121 +256,137 @@ const RevalidationPage = () => {
             </div>
           </div>
 
-          {flight?.segGroups?.map((segGroup, gIdx) => {
-            const segments = segGroup.segs || [];
-            const totalSegments = segments.length;
-            const isReturn = gIdx > 0;
-            return (
-              <div
-                key={gIdx}
-                className="bg-white border-2 border-gray-200 rounded-lg overflow-hidden"
-              >
-                <div className="bg-gray-100 text-indigo-900 p-4 flex justify-between items-center">
-                  <div>
-                    <h3 className="text-lg font-semibold">
-                      {isReturn ? "Return: " : "Outbound: "} {segGroup.origin} →{" "}
-                      {segGroup.destination}
-                    </h3>
-                    <p className="text-indigo-900 text-sm">
-                      {formatDate(segGroup.departureOn)} •{" "}
-                      {totalSegments === 1
-                        ? "Non-stop"
-                        : `${totalSegments - 1} stop${
-                            totalSegments > 2 ? "s" : ""
-                          }`}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-indigo-900 text-sm">Total Duration</p>
-                    <p className="text-lg font-semibold">
-                      {formatDuration(
-                        segments.reduce((t, s) => t + s.duration, 0)
-                      )}
-                    </p>
-                  </div>
-                </div>
+          {flight?.segGroups?.length ? (
+            flight.segGroups.map((segGroup, gIdx) => {
+              const segments = segGroup.segs || [];
+              return (
+                <div
+                  key={gIdx}
+                  className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+                >
+      
 
-                <div className="p-4">
-                  {segments.map((seg, idx) => (
-                    <div key={idx}>
-                      <div className="flex items-center justify-between py-4">
-                        <div className="text-center flex-1">
-                          <p className="text-2xl font-bold text-gray-800">
-                            {formatTime(seg.departureOn)}
-                          </p>
-                          <p className="text-sm text-gray-600 font-medium">
-                            {seg.origin}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {formatDate(seg.departureOn)}
-                          </p>
-                          {seg.depTerminal && (
-                            <p className="text-xs text-gray-500">
-                              Terminal {seg.depTerminal}
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="flex-2 px-6">
-                          <div className="flex flex-col items-center">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <div className="p-4">
+                    {segments.map((seg, idx) => (
+                      <div key={idx} className="p-6 border-b border-gray-200 last:border-none">
+                        <div className="flex flex-col md:flex-row justify-between gap-6">
+                          <div className="flex items-center gap-3 w-full md:w-1/4">
+                            <div className="text-center">
+                              <img
+                                src={`/react/flight_logos/${seg.mrkAirline || 'AA'}.webp`}
+                                alt={getAirlineName(seg.mrkAirline || 'AA')}
+                                className="w-20 h-20 rounded object-contain mx-auto"
+                                onError={(e) => {
+                                  e.target.style.display = "none";
+                                  e.target.nextSibling.style.display = "flex";
+                                }}
+                              />
+                              <div
+                                className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto"
+                              >
                                 <span className="text-blue-600 font-bold text-xs">
-                                  {seg.mrkAirline}
+                                  {seg.mrkAirline || 'AA'}
                                 </span>
                               </div>
-                              <div className="text-center">
-                                <p className="text-sm font-medium text-gray-800">
-                                  {getAirlineName(seg.mrkAirline)}{" "}
-                                  {seg.flightNum}
+                              <p className="p-2 text-sm text-[#12114A] font-medium">{getAirlineName(seg.mrkAirline || 'AA')} - {seg.flightNum || 'N/A'}</p>
+                              
+                            </div>
+                            
+                          </div>
+
+                          <div className="flex items-start justify-between w-full h-36 md:w-2/4">
+                            <div className="w-2/6 flex flex-col h-full justify-between">
+                              <div>
+                                <p className="text-xl font-bold text-[#12114A]">{formatTime(seg.departureOn)}</p>
+                                <p className="text-sm text-gray-500">
+                                  {formatDate(seg.departureOn)}
                                 </p>
-                                <p className="text-xs text-gray-500">
-                                  {seg.eqpType} • {formatDuration(seg.duration)}
+                              </div>
+
+                              <div>
+                                <p className="text-xl font-bold text-[#12114A]">{formatTime(seg.arrivalOn)}</p>
+                                <p className="text-sm text-gray-500">
+                                  {formatDate(seg.arrivalOn)}
                                 </p>
                               </div>
                             </div>
-                            <div className="w-full h-px bg-gray-300 relative">
-                              <div className="absolute left-0 top-0 w-2 h-2 bg-blue-500 rounded-full transform -translate-y-1/2"></div>
-                              <div className="absolute right-0 top-0 w-2 h-2 bg-blue-500 rounded-full transform -translate-y-1/2"></div>
+
+                            <div className="w-1/6 flex flex-col items-center text-gray-400">
+                              <span className="h-28 w-px bg-gray-300 my-1"></span>
+                              <MdAirplanemodeActive className="text-lg" />
+                            </div>
+
+                            <div className="w-3/6 flex flex-col h-full justify-between">
+                              <div>
+                                <p className="text-sm text-[#12114A] font-medium mt-1">
+                                  {seg.origin || 'N/A'}
+                                </p>
+                                <p className="text-xs text-gray-500 truncate">
+                                  {seg.origin || 'N/A'}
+                                  {seg.depTerminal && `, Terminal ${seg.depTerminal}`}
+                                </p>
+                              </div>
+
+                              <div className="text-sm text-gray-600 font-semibold">
+                                {formatDuration(seg.duration)}
+                              </div>
+
+                              <div>
+                                <p className="text-sm text-[#12114A] font-medium mt-1">
+                                  {seg.destination || 'N/A'}
+                                </p>
+                                <p className="text-xs text-gray-500 truncate">
+                                  {seg.destination || 'N/A'}
+                                  {seg.arrTerminal && `, Terminal ${seg.arrTerminal}`}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="w-full md:w-1/4">
+                            <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                              <p className="text-[#12114A] font-semibold mb-2">
+                                Free Baggage Detail
+                              </p>
+                              <div className="flex items-start gap-2 text-sm text-gray-700 mb-1">
+                                <FaSuitcase className="mt-0.5 text-yellow-600" />
+                                <p>Check In: 15 kg</p>
+                              </div>
+                              <div className="flex items-start gap-2 text-sm text-gray-700 mb-1">
+                                <FaSuitcase className="mt-0.5 text-yellow-600" />
+                                <p>Cabin: 7 kg</p>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-[#12114A] font-medium cursor-pointer">
+                                <FaInfoCircle className="text-yellow-600" />
+                                <span>Information</span>
+                              </div>
                             </div>
                           </div>
                         </div>
 
-                        <div className="text-center flex-1">
-                          <p className="text-2xl font-bold text-gray-800">
-                            {formatTime(seg.arrivalOn)}
-                          </p>
-                          <p className="text-sm text-gray-600 font-medium">
-                            {seg.destination}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {formatDate(seg.arrivalOn)}
-                          </p>
-                          {seg.arrTerminal && (
-                            <p className="text-xs text-gray-500">
-                              Terminal {seg.arrTerminal}
+                        {idx < segments.length - 1 && (
+                          <div className="mt-6 border-t border-gray-200 pt-4 text-center">
+                            <p className="text-gray-400 font-medium">Change Planes</p>
+                            <p className="text-[#12114A] text-sm font-semibold">
+                              {seg.destination || 'N/A'}
                             </p>
-                          )}
-                        </div>
+                            <p className="text-gray-500 text-sm">
+                              Connecting Time: {calculateLayover(
+                                seg.arrivalOn,
+                                segments[idx + 1]?.departureOn
+                              )}
+                            </p>
+                          </div>
+                        )}
                       </div>
-
-                      {idx < segments.length - 1 && (
-                        <div className="border-t border-gray-200 py-3 flex justify-center space-x-2 text-orange-600 text-sm">
-                          <p>
-                            Layover in {seg.destination}:{" "}
-                            {calculateLayover(
-                              seg.arrivalOn,
-                              segments[idx + 1]?.departureOn
-                            )}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          ) : (
+            <p className="text-gray-600 p-4">No flight segments available.</p>
+          )}
 
           <h2 className="text-2xl font-semibold text-indigo-900 m-4">
             Passenger Information

@@ -6,8 +6,7 @@ import warsaw from "../assets/warsaw.png";
 
 const Layout = ({ children }) => {
   const location = useLocation();
-  const isHome = location.pathname === "/"; // adjust if your homepage route is different
-
+  const isHome = location.pathname === "/";
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -15,7 +14,7 @@ const Layout = ({ children }) => {
 
       {isHome && (
         <div className="flex justify-center pt-12">
-          <div className="bg-white rounded-lg">
+          <div className=" rounded-lg">
             <img src={warsaw} alt="Warsaw" className="object-contain" />
           </div>
         </div>

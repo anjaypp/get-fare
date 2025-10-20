@@ -9,6 +9,7 @@ const AutocompleteSelect = ({
   placeholder,
   value, // Current selected value
   hideSelectedInInput = false,
+  size = "default", // "default" or "summary"
 }) => {
   const [query, setQuery] = useState("");
   const [items, setItems] = useState([]);
@@ -69,24 +70,42 @@ const AutocompleteSelect = ({
   const handleSelect = (item) => {
     if (item) {
       setSelectedItem(item);
-      setQuery(""); // Clear search query after selection
+      setQuery("");
       onSelect?.(item);
     }
   };
 
+
   const displayValue = (item) => {
-    if (hideSelectedInInput) return query || ""; // keep showing user's query
-    if (!item) return "";
-    // show the code in the input; the dropdown shows code on first line and name on the second
-    return item.city || "";
-  };
+  if (!item) return query; // if no item, show whatever is in query
+
+  if (size === "summary") {
+    return `${item.city}, ${item.code}`;
+  }
+
+  if (hideSelectedInInput) return query || "";
+
+  // Only show selected city if query is empty
+  return query || item.city || "";
+};
+
+
+
+  // Adjust font sizes for summary vs default
+  const inputClass =
+    size === "summary"
+      ? "text-lg font-medium"
+      : "text-[28px] font-semibold";
+
+  const dropdownCityClass = size === "summary" ? "text-sm font-medium" : "text-base font-medium";
+  const dropdownNameClass = size === "summary" ? "text-xs text-gray-500" : "text-xs text-gray-500";
 
   return (
     <div className="w-full">
       <Combobox value={selectedItem} onChange={handleSelect}>
         <div className="relative">
           <Combobox.Input
-            className="w-full bg-transparent border-none rounded-md text-[28px] text-indigo-950 text-semibold placeholder-gray-500 focus:outline-none"
+            className={`w-full bg-transparent border-none rounded-md text-indigo-950 placeholder-gray-500 focus:outline-none ${inputClass} max-w-[200px]`}
             displayValue={displayValue}
             autoComplete="off"
             onChange={handleInputChange}
@@ -105,14 +124,16 @@ const AutocompleteSelect = ({
                     key={`${item.code}-${idx}`}
                     value={item}
                     className={({ active }) =>
-                      `cursor-pointer select-none px-4 py-2 ${
-                        active ? "bg-blue-500 text-white" : "text-gray-900"
+                      `cursor-pointer select-none px-3 py-2 ${
+                        active ? "bg-gray-50 text-indigo-950" : "text-gray-900"
                       }`
                     }
                   >
                     <div className="flex flex-col">
-                      <span className="text-base font-medium">{item.city} ({item.code})</span>
-                      <span className="text-xs text-gray-500">{item.name}</span>
+                      <span className={dropdownCityClass}>
+                        {item.city} ({item.code})
+                      </span>
+                      <span className={dropdownNameClass}>{item.name}</span>
                     </div>
                   </Combobox.Option>
                 ))

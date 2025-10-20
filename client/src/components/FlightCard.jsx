@@ -72,10 +72,10 @@ const FlightCard = ({ flight, onBook }) => {
               />
             </div>
             <div className="flex flex-col">
-              <p className="text-[#15144E] font-semibold text-sm">
+              <p className="text-[#15144E] font-semibold text-[14px]">
                 {flight.airlineName}
               </p>
-              <p className="text-[#15144E] font-semibold text-base">
+              <p className="text-[#15144E] text-[12px]">
                 {flight.airline}-{flight.segGroups[0]?.segs[0]?.flightNum}
               </p>
             </div>

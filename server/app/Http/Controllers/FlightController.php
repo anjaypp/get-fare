@@ -44,7 +44,34 @@ class FlightController extends Controller
         return response()->json(['results' => $results]);
     }
 
-public function revalidate(Request $request, GetFaresApi $api)
+public function sort(Request $request, GetFaresApi $api)
+{
+    $request->validate([
+        'traceId' => 'required|string',
+        'sortBy' => 'required|string|in:departure,arrival,duration,price,stops',
+        'order' => 'nullable|string|in:asc,desc',
+    ]);
+
+    $traceId = $request->input('traceId');
+    $sortBy = $request->input('sortBy');
+    $order = $request->input('order', 'asc');
+
+    // Map frontend sortBy to service metadata keys
+    $keyMap = [
+        'departure' => 'departTime',
+        'arrival' => 'arrivalTime',
+        'duration' => 'totalDuration',
+        'price' => 'minPrice',
+        'stops' => 'totalStops',
+    ];
+    $serviceKey = $keyMap[$sortBy] ?? 'minPrice';
+
+    $result = $api->sortFlights($traceId, $serviceKey, $order);
+
+    return response()->json($result);
+}
+
+    public function revalidate(Request $request, GetFaresApi $api)
 {
     $validated = $request->validate([
         'traceId'     => 'required|string',

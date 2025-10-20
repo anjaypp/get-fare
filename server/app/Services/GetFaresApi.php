@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use App\Models\Airline;
 use App\Models\Booking;
 
@@ -58,8 +59,6 @@ class GetFaresApi
         return $token;
     }
 
-
- // Example: inside searchFlights
 public function searchFlights(array $data)
 {
     $token = $this->getToken();
@@ -112,32 +111,157 @@ public function searchFlights(array $data)
         $airlineMap = $airlines->pluck('Airline_name', 'Iata_code');
 
         $filteredFlights = [];
+
         foreach ($flights as &$flight) {
             $flight['airlineName'] = $airlineMap[$flight['airline']] ?? $flight['airline'];
 
-
-            // Remove flights with no available seats
-            $hasAvailableSeat = false;
-            foreach ($flight['fareGroups'] ?? [] as $fareGroup) {
+            // Filter fareGroups with seats only
+            $flight['fareGroups'] = array_values(array_filter($flight['fareGroups'] ?? [], function ($fareGroup) {
                 foreach ($fareGroup['segInfos'] ?? [] as $seg) {
+                    Log::info("SegInfo check: seatRemaining = " . json_encode($seg['seatRemaining'] ?? 'MISSING'));
                     if (!empty($seg['seatRemaining']) && $seg['seatRemaining'] > 0) {
-                        $hasAvailableSeat = true;
-                        break 2; // exit both loops immediately
+                        return true;
                     }
                 }
-            }
+                return false;
+            }));
 
-            if ($hasAvailableSeat) {
+            // Keep flight only if at least one fareGroup has seats
+            if (!empty($flight['fareGroups'])) {
                 $filteredFlights[] = $flight;
             }
         }
+        unset($flight);
 
         $results['flights'] = array_values($filteredFlights);
+
+        // Add metadata to filtered flights only
+        foreach ($results['flights'] as &$flight) {
+            $minPrice = PHP_INT_MAX;
+            foreach ($flight['fareGroups'] ?? [] as $fareGroup) {
+                $total = 0;
+                foreach ($fareGroup['fares'] ?? [] as $fare) {
+                    $taxTotal = array_sum(array_column($fare['taxes'] ?? [], 'amt'));
+                    $total += ($fare['base'] ?? 0 + $taxTotal);
+                }
+                $minPrice = min($minPrice, $total);
+            }
+            $flight['minPrice'] = ($minPrice === PHP_INT_MAX) ? 0 : $minPrice;
+
+            // totalDuration
+            $totalDuration = 0;
+            foreach ($flight['segGroups'] ?? [] as $segGroup) {
+                foreach ($segGroup['segs'] ?? [] as $seg) {
+                    $totalDuration += $seg['duration'] ?? 0;
+                }
+            }
+            $flight['totalDuration'] = $totalDuration;
+
+            // departTime (outbound)
+            $flight['departTime'] = $flight['segGroups'][0]['segs'][0]['departureOn'] ?? null;
+
+            // arrivalTime (outbound arrival; use for 'Arrive')
+            $firstGroup = $flight['segGroups'][0] ?? [];
+            $outboundSegs = $firstGroup['segs'] ?? [];
+            $lastOutboundSeg = end($outboundSegs);
+            $flight['arrivalTime'] = $lastOutboundSeg['arrivalOn'] ?? null;
+
+            // returnDepartTime (return for round-trip; fallback to arrivalTime for one-way)
+            $returnDepartTime = null;
+            if (isset($flight['segGroups'][1])) {
+                $returnSegs = $flight['segGroups'][1]['segs'] ?? [];
+                $firstReturnSeg = reset($returnSegs);
+                $returnDepartTime = $firstReturnSeg['departureOn'] ?? null;
+            } else {
+                $returnDepartTime = $flight['arrivalTime'];
+            }
+            $flight['returnDepartTime'] = $returnDepartTime;
+
+            // totalStops
+            $stops = 0;
+            foreach ($flight['segGroups'] ?? [] as $segGroup) {
+                $segGroupSegs = $segGroup['segs'] ?? [];
+                $stops += (count($segGroupSegs) - 1);
+            }
+            $flight['totalStops'] = $stops;
+        }
+        unset($flight);
+
+        // Cache only filtered flights with seats
+        $traceId = $results['traceId'] ?? Str::uuid()->toString();
+        Cache::put("flights:{$traceId}", $results['flights'], now()->addMinutes(15));
+        $results['traceId'] = $traceId;
+        $results['totalFlights'] = count($results['flights']);
+
+        // Default sort on filtered results
+        $results['flights'] = $this->sortFlights($traceId, 'minPrice', 'asc')['flights'];
+    } else {
+        // No raw flights from API - return empty structure
+        $traceId = $results['traceId'] ?? Str::uuid()->toString();
+        $results['flights'] = [];
+        $results['traceId'] = $traceId;
+        $results['totalFlights'] = 0;
+        Cache::put("flights:{$traceId}", [], now()->addMinutes(15));
     }
 
     return $results;
 }
 
+public function sortFlights(string $traceId, string $sortBy, string $order = 'asc'): array
+{
+    $flights = Cache::get("flights:{$traceId}", []);
+
+    if (empty($flights)) {
+        return [
+            'flights' => [],
+            'traceId' => $traceId,
+            'totalFlights' => 0,
+        ];
+    }
+
+    usort($flights, function ($a, $b) use ($sortBy, $order) {
+        // Get values
+        $valA = $a[$sortBy] ?? null;
+        $valB = $b[$sortBy] ?? null;
+
+        // Handle nulls: push to end in asc, start in desc
+        if ($valA === null && $valB === null) return 0;
+        if ($valA === null) return $order === 'asc' ? 1 : -1;
+        if ($valB === null) return $order === 'asc' ? -1 : 1;
+
+        // Convert to comparable (timestamp for times, numeric for others)
+        $cmpA = $this->getComparableValue($valA, $sortBy);
+        $cmpB = $this->getComparableValue($valB, $sortBy);
+
+        if ($cmpA === $cmpB) return 0;
+
+        // Compare
+        $result = $cmpA < $cmpB ? -1 : 1;
+
+        // Reverse for desc
+        if ($order === 'desc') {
+            $result = -$result;
+        }
+
+        return $result;
+    });
+
+    return [
+        'flights' => $flights,
+        'traceId' => $traceId,
+        'totalFlights' => count($flights),
+    ];
+}
+
+private function getComparableValue($value, $sortBy): int|float
+{
+    if (in_array($sortBy, ['departTime', 'arrivalTime', 'returnDepartTime'])) {
+        return strtotime($value) ?: 0;  // Timestamp or 0 for invalid
+    }
+
+    // Numeric for price, duration, stops
+    return (float) $value;
+}
 
 public function revalidate(array $data)
 {
@@ -159,7 +283,7 @@ public function revalidate(array $data)
             ->timeout(25)
             ->post($this->baseUrl . 'Flights/Revalidation/v1', $payload);
 
-            
+
         if($response->status() == 204){
             Storage::put('response/revalidate_response.json', json_encode($response->json(), JSON_PRETTY_PRINT));
         }

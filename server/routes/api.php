@@ -8,6 +8,7 @@ use App\Services\GetFaresApi;
 Route::get('/airports', [AirportController::class, 'index']);
 
 Route::post('/flights/search', [FlightController::class, 'search']);
+Route::post('/flights/sort', [FlightController::class, 'sort']);
 Route::post('/flights/revalidate', [FlightController::class, 'revalidate']);
 Route::post('/flights/booking', [FlightController::class, 'booking']);
 
