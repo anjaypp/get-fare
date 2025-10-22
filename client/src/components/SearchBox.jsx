@@ -5,8 +5,6 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import AutocompleteSelect from "./AutoCompleteSelect";
 import CustomDateInput from "../components/CustomDateInput";
-import LoadingModal from "./LoadingModal";
-import axiosClient from "../../axios-client";
 import { useNavigate } from "react-router-dom";
 
 // Hook to detect clicks outside an element
@@ -29,7 +27,6 @@ export default function SearchFlight() {
   useClickOutside(travellerRef, () => setShowTravellerDialog(false));
 
   const [journeyType, setJourneyType] = useState(1); // 1: OneWay, 2: RoundTrip, 3: Multi
-  const [loading, setLoading] = useState(false);
   const [showTravellerDialog, setShowTravellerDialog] = useState(false);
 
   const [formData, setFormData] = useState(() => {
@@ -94,51 +91,42 @@ export default function SearchFlight() {
   };
 
   // Handle Search
+  //
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
 
-    try {
-      // Build originDestinations
-      let originDestinations = [
-        {
-          origin: formData.origin?.code?.toLowerCase() || "",
-          destination: formData.destination?.code?.toLowerCase() || "",
-          departureDateTime: formData.departure,
-        },
-      ];
+    // Build originDestinations
+    let originDestinations = [
+      {
+        origin: formData.origin?.code?.toLowerCase() || "",
+        destination: formData.destination?.code?.toLowerCase() || "",
+        departureDateTime: formData.departure,
+      },
+    ];
 
-      // Add return leg for round-trip
-      if (journeyType === 2 && formData.returnDate) {
-        originDestinations.push({
-          origin: formData.destination?.code?.toLowerCase() || "",
-          destination: formData.origin?.code?.toLowerCase() || "",
-          departureDateTime: formData.returnDate,
-        });
-      }
-
-      // For multi-city, push additional legs into originDestinations
-
-      const payload = {
-        journeyType, // 1: OneWay, 2: RoundTrip, 3: Multi
-        originDestinations,
-        adultCount: formData.adults,
-        childCount: formData.children,
-        infantCount: formData.infants,
-        cabinClass: formData.cabin,
-        directOnly: formData.direct,
-      };
-
-      const res = await axiosClient.post("/flights/search", payload);
-      const data = res.data?.results || res.data;
-      console.log(data);
-      navigate("/results", { state: { results: data } });
-    } catch (err) {
-      console.error("Search failed:", err);
-      alert("Failed to fetch flights. Please try again.");
-    } finally {
-      setLoading(false);
+    // Add return leg for round-trip
+    if (journeyType === 2 && formData.returnDate) {
+      originDestinations.push({
+        origin: formData.destination?.code?.toLowerCase() || "",
+        destination: formData.origin?.code?.toLowerCase() || "",
+        departureDateTime: formData.returnDate,
+      });
     }
+
+    // For multi-city, push additional legs into originDestinations
+
+    const payload = {
+      journeyType, // 1: OneWay, 2: RoundTrip, 3: Multi
+      originDestinations,
+      adultCount: formData.adults,
+      childCount: formData.children,
+      infantCount: formData.infants,
+      cabinClass: formData.cabin,
+      directOnly: formData.direct,
+    };
+
+    navigate("/results", { state: payload });
   };
 
   return (
@@ -495,7 +483,6 @@ export default function SearchFlight() {
             {/* Right: Search Button */}
             <button
               type="submit"
-              disabled={loading}
               className="bg-indigo-950 hover:bg-indigo-950 text-white px-6 py-3 rounded-lg flex items-center gap-2 font-semibold cursor-pointer"
             >
               <FaSearch /> Search
@@ -503,10 +490,6 @@ export default function SearchFlight() {
           </div>
         </form>
       </div>
-      <LoadingModal
-        loading={loading}
-        loadingMessage="Searching for flights..."
-      />
     </div>
   );
 }

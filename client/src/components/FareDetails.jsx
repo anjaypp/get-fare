@@ -40,7 +40,7 @@ const FareDetails = ({ flight, onBook, formatBaggageAllowance }) => {
   };
 
   return (
-    <div className="p-6 rounded-xl mt-2 relative">
+    <div className="bg-[#FFFAFA] p-6 rounded-xl mt-2 relative">
       <h3 className="font-semibold text-[#15144E] mb-6 text-lg">
         Fare Options
       </h3>

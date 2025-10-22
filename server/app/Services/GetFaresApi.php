@@ -103,6 +103,7 @@ public function searchFlights(array $data)
     $results = $response->json();
     Storage::put('response/search_results.json', json_encode($results, JSON_PRETTY_PRINT));
 
+
     if (!empty($results['flights'])) {
         $flights = $results['flights'];
 
@@ -195,6 +196,29 @@ public function searchFlights(array $data)
 
         // Default sort on filtered results
         $results['flights'] = $this->sortFlights($traceId, 'minPrice', 'asc')['flights'];
+
+        $page = max(1, (int) ($data['page'] ?? 1));
+        $limit = max(1, (int) ($data['limit'] ?? 10));
+
+        //Paginate flight if they exist
+        if(!empty($results['flights'])){
+            $totalFlights = count($results['flights']);
+            $totalPages = ceil($totalFlights / $limit);
+            if ($page > $totalPages) {
+                $page = $totalPages > 0 ? $totalPages : 1;
+            }
+            $offset = ($page - 1) * $limit;
+            $paginatedFlights = array_slice($results['flights'], $offset, $limit);
+
+            $results['pagination'] = [
+                'total' => $totalFlights,
+                'page' => $page,
+                'limit' => $limit,
+                'totalPages' => ceil($totalFlights / $limit)
+            ];
+
+            $results['flights'] = $paginatedFlights;
+        }
     } else {
         // No raw flights from API - return empty structure
         $traceId = $results['traceId'] ?? Str::uuid()->toString();
@@ -202,6 +226,13 @@ public function searchFlights(array $data)
         $results['traceId'] = $traceId;
         $results['totalFlights'] = 0;
         Cache::put("flights:{$traceId}", [], now()->addMinutes(15));
+
+        $results['pagination'] = [
+            'total' => 0,
+            'page' => 1,
+            'limit' => 10,
+            'totalPages' => 0
+        ];
     }
 
     return $results;
@@ -303,6 +334,7 @@ public function revalidate(array $data)
     });
 }
 
+
     public function createPnr(array $data)
 {
     $token = $this->getToken();
@@ -372,6 +404,23 @@ public function revalidate(array $data)
         'success' => true,
         'data'    => $pnrData,
     ];
+}
+
+public function getSeatLayout(array $data){
+
+    $token = $this->getToken();
+
+    $payload = [
+        'traceId' => $data['traceId'],
+        'purchaseIds' => array_map('strval', $data['purchaseIds']),
+    ];
+
+    $response = Http::withToken($token)
+            ->retry(2, 200)
+            ->timeout(25)
+            ->post($this->baseUrl . 'Flights/Revalidation/v1/Seatlayout', $payload);
+
+    return $response->json();
 }
 
 

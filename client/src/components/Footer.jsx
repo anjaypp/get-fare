@@ -1,16 +1,17 @@
 import React from "react";
 import { IoMdPin } from "react-icons/io";
 import { IoIosMail } from "react-icons/io";
+import footerlogo from "../assets/footerlogo.png";
 import { MdLocalPhone } from "react-icons/md";
 const Footer = () => {
   return (
-    <footer className="bg-indigo-950 mt-auto text-white">
-      <div className="px-8 py-12">
+    <footer className="grid place-items-center bg-indigo-950 mt-auto text-white">
+      <div className="max-w-6xl px-8 py-12">
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-10">
           {/* Left Section */}
           <div className="flex-1 max-w-[300px] mt-4">
             <img
-              src="/footerlogo.png"
+              src={footerlogo}
               alt="Afinetrip Logo"
               className="h-20 w-auto"
             />
@@ -127,15 +128,19 @@ const Footer = () => {
           </div>
         </div>
       </div>
-      {/* Underline - outside padding container */}
-      <div className="w-full border-t border-gray-700 mt-6 flex flex-col md:flex-row justify-between items-center px-8 py-4">
+
+      {/* Full-width underline */}
+      <div className="w-full border-t border-gray-700 mt-6"></div>
+
+      {/* Text below underline */}
+      <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center px-8 py-4 gap-2 space-x-122 md:gap-0">
         {/* Left: Copyright */}
-        <p className="text-sm text-[#D0D0D0] text-[14px] text-center md:text-left">
+        <p className="text-sm text-[#D0D0D0] text-center md:text-left">
           Copyright © 2025 Afine Trip
         </p>
 
         {/* Right: Links / Info */}
-        <div className="flex flex-wrap justify-center md:justify-end items-center gap-2 text-[14px]">
+        <div className="flex flex-wrap justify-center md:justify-end items-center gap-2 text-[14px] mt-2 md:mt-0">
           <span>All Rights Reserved</span>
           <span>|</span>
           <span>Terms and Conditions Apply</span>

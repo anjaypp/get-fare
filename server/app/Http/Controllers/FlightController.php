@@ -9,6 +9,7 @@ use App\Models\Passenger;
 use App\Models\Segment;
 use App\Models\Baggage;
 use App\Http\Controllers\FlightController;
+use Illuminate\Support\Facades\Cache;
 use App\Services\GetFaresApi;
 
 
@@ -27,6 +28,8 @@ class FlightController extends Controller
             'infantCount' => 'required|integer|min:0',
             'cabinClass' => 'required|string',
             'directOnly' => 'required|boolean',
+            'page' => 'sometimes|integer|min:1',
+            'limit' => 'sometimes|integer|min:1|max:50',
         ]);
 
         $payload = $request->only([
@@ -36,13 +39,50 @@ class FlightController extends Controller
             'childCount',
             'infantCount',
             'cabinClass',
-            'directOnly'
+            'directOnly',
+            'page',
+            'limit'
         ]);
 
         $results = $api->searchFlights($payload);
 
-        return response()->json(['results' => $results]);
+         return response()->json([
+            'results' => $results,
+            'traceId' => $results['traceId'] ?? null,
+         ]);
     }
+
+    public function paginate(Request $request)
+{
+    $traceId = $request->query('traceId');
+    $page = max(1, (int) $request->query('page', 1));
+    $limit = max(1, (int) $request->query('limit', 10));
+
+    if (!$traceId || !Cache::has("flights:{$traceId}")) {
+        return response()->json(['error' => 'Invalid or expired traceId'], 400);
+    }
+
+    $flights = Cache::get("flights:{$traceId}");
+    $totalFlights = count($flights);
+    $totalPages = ceil($totalFlights / $limit);
+    $page = min($page, $totalPages ?: 1);
+    $offset = ($page - 1) * $limit;
+    $paginatedFlights = array_slice($flights, $offset, $limit);
+
+    return response()->json([
+        'flights' => $paginatedFlights,
+        'pagination' => [
+            'total' => $totalFlights,
+            'page' => $page,
+            'limit' => $limit,
+            'totalPages' => $totalPages,
+        ],
+        'traceId' => $traceId,
+        'source' => 'cache',
+    ]);
+}
+
+
 
 public function sort(Request $request, GetFaresApi $api)
 {
@@ -101,6 +141,28 @@ public function sort(Request $request, GetFaresApi $api)
         ], $e->getCode() ?: 500);
     }
 }
+
+public function getSeatLayout(Request $request, GetFaresApi $api)
+{
+    $validated = $request->validate([
+        'traceId'        => 'required|string',
+        'purchaseIds'    => 'required|array|min:1',
+        'purchaseIds.*'  => 'required|string',
+    ]);
+
+    try {
+        // Use validated data as payload
+        $seatLayout = $api->getSeatLayout($validated);
+        return response()->json($seatLayout);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+        ], 500);
+    }
+}
+
 
 private function sanitizePayload(array $data): array
 {

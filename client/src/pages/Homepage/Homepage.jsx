@@ -16,8 +16,8 @@ const Homepage = () => {
         <SearchBox />
       </section>
       {/* Offers and Recent Searches*/}
-      <section className="px-8 py-12">
-        <div className="flex flex-col lg:flex-row gap-8">
+      <section className="grid place-items-center px-10 py-12">
+        <div className="max-w-6xl flex flex-col lg:flex-row gap-8">
           <div className="flex-1">
             <Offers />
           </div>
@@ -27,7 +27,7 @@ const Homepage = () => {
           </div>
         </div>
       </section>
-      <section className="px-8 py-12">
+      <section className="grid place-items-center px-8 py-12">
         <Hotels />
       </section>
     </>
