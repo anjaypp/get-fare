@@ -14,7 +14,7 @@ const Layout = ({ children }) => {
 
       {isHome && (
         <div className="flex justify-center pt-12">
-          <div className=" rounded-lg">
+          <div className=" rounded-lg px-56">
             <img src={warsaw} alt="Warsaw" className="object-contain" />
           </div>
         </div>

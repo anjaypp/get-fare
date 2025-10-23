@@ -63,7 +63,7 @@ const FlightCard = ({ flight, onBook }) => {
         {/* Top section */}
         <div className="p-6 flex justify-between items-center">
           <div className="flex-col items-center space-x-4">
-            <div className="w-14 h-14 border border-gray-100 rounded-sm flex items-center justify-center mb-2">
+            <div className="w-14 h-14 border border-gray-200 rounded-sm flex items-center justify-center mb-2">
               <img
                 src={airlineLogos[flight.airline]}
                 alt={flight.airline}
@@ -115,9 +115,9 @@ const FlightCard = ({ flight, onBook }) => {
                         : `${stops} stop${stops > 1 ? "s" : ""}`}
                     </p>
                     <div className="flex items-center my-1">
-                      <GoDotFill className="text-[#15144E]" />
+                      <GoDotFill className="text-[#312c85]" />
                       <div className="w-16 border-t border-gray-300 mx-2"></div>
-                      <IoAirplane className="text-[#15144E]" />
+                      <IoAirplane className="text-[#312c85]" />
                     </div>
                     <p className="text-sm">
                       {Math.floor(totalDuration / 60)}h {totalDuration % 60}m
@@ -154,7 +154,7 @@ const FlightCard = ({ flight, onBook }) => {
             {availableFareGroups.length === 1 ? (
               <button
                 onClick={() =>
-                  onBook(flight, availableFareGroups[0].purchaseId)
+                  onBook(availableFareGroups[0].purchaseId)
                 }
                 className="mt-2 px-6 py-2 bg-indigo-950 text-white text-sm rounded-md hover:bg-indigo-900 cursor-pointer"
               >

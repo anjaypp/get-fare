@@ -295,5 +295,46 @@ public function booking(Request $request, GetFaresApi $api)
 
 }
 
+public function issue(Request $request, GetFaresApi $api)
+{
+    $validated = $request->validate([
+        'OrderRefId' => 'required|string',
+    ]);
+
+    try {
+        $issueTicket = $api->issueTicket($validated);
+        return response()->json($issueTicket);
+    } catch (\Exception $e) {
+        // Log the error if needed
+        \Log::error('Issue Ticket Error: '.$e->getMessage());
+
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+        ], 500);
+    }
+}
+
+public function cancel(Request $request, GetFaresApi $api)
+{
+    $validated = $request->validate([
+        'OrderRefId' => 'required|string',
+    ]);
+
+    try {
+        $cancelTicket = $api->cancelTicket($validated);
+        return response()->json($cancelTicket);
+    } catch (\Exception $e) {
+        // Log the error if needed
+        \Log::error('Cancel Ticket Error: ' . $e->getMessage());
+
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+        ], 500);
+    }
+}
+
+
 
 }

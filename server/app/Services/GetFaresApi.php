@@ -415,10 +415,16 @@ public function getSeatLayout(array $data){
         'purchaseIds' => array_map('strval', $data['purchaseIds']),
     ];
 
+    Storage::put('request/seatlayout_payload.json', json_encode($payload, JSON_PRETTY_PRINT));
+
+
     $response = Http::withToken($token)
             ->retry(2, 200)
             ->timeout(25)
             ->post($this->baseUrl . 'Flights/Revalidation/v1/Seatlayout', $payload);
+
+    Storage::put('response/seatlayout_response.json', json_encode($response->json(), JSON_PRETTY_PRINT));
+
 
     return $response->json();
 }
@@ -445,7 +451,66 @@ public function getBooking(string $orderId)
         'data'    => $response->json(),
     ];
 }
-public function saveBooking(array $data){
+
+public function issueTicket(Request $request)
+    {
+        $request->validate([
+            'orderId' => 'required|string',
+        ]);
+
+        $orderId = $request->orderId;
+        $token   = $this->getToken();
+        $url     = $this->baseUrl . "Flights/Booking/TicketOrder/v1";
+
+        Storage::put('request/get_booking_payload.json', json_encode(['orderId' => $orderId], JSON_PRETTY_PRINT));
+
+        $response = Http::withToken($token)->post($url, ['orderId' => $orderId]);
+
+        Storage::put('response/get_booking_response.json', json_encode($response->json(), JSON_PRETTY_PRINT));
+
+        if (!$response->ok()) {
+            return response()->json([
+                'success' => false,
+                'message' => $response->body()
+            ], $response->status());
+        }
+
+        return response()->json([
+            'success' => true,
+            'data'    => $response->json(),
+        ]);
+    }
+
+    public function cancelTicket(Request $request)
+    {
+        $request->validate([
+            'orderId' => 'required|string',
+        ]);
+
+        $orderId = $request->orderId;
+        $token   = $this->getToken();
+        $url     = $this->baseUrl . "Flights/Booking/CreatePNR/v1/ReleasePNR";
+
+        Storage::put('request/cancel_booking_payload.json', json_encode(['url' => $url], JSON_PRETTY_PRINT));
+
+        $response = Http::withToken($token)->post($url, ['orderId' => $orderId]);
+
+        Storage::put('response/cancel_booking_response.json', json_encode($response->json(), JSON_PRETTY_PRINT));
+
+        if (!$response->ok()) {
+            return response()->json([
+                'success' => false,
+                'message' => $response->body()
+            ], $response->status());
+        }
+
+        return response()->json([
+            'success' => true,
+            'data'    => $response->json(),
+        ]);
+    }
+
+    public function saveBooking(array $data){
     // Make function idempotent and tolerant of different API key names.
     $orderRefId = $data['orderRefId'] ?? $data['orderId'] ?? $data['order_id'] ?? null;
     if (empty($orderRefId)) {

@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { initCSRF } from "./utils/initCSRF";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Layout from "./components/Layout";
 import Homepage from "./pages/Homepage/Homepage";
@@ -9,6 +10,11 @@ import BookingConfirmation from "./pages/BookingConfirmation";
 import { Toaster } from "react-hot-toast";
 
 function App() {
+
+  useEffect(() => {
+    initCSRF();
+  }, []);
+
   return (
     <Router>
       <Toaster position="top-center" reverseOrder={false} />

@@ -149,8 +149,8 @@ const FareDetails = ({ flight, onBook, formatBaggageAllowance }) => {
               {flight.currency} {getFareTotal(selectedGroup).toFixed(0)}
             </span>
             <button
-              className="bg-[#15144E] text-white py-2 px-4 rounded-lg font-medium"
-              onClick={() => onBook(flight, selectedGroup.purchaseId)}
+              className="bg-[#15144E] text-white py-2 px-4 rounded-lg font-medium cursor-pointer"
+              onClick={() => onBook(selectedGroup.purchaseId)}
             >
               Book Now
             </button>

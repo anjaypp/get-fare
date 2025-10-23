@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
+import axiosClient from "../../axios-client";
+import toast from "react-hot-toast";
 
 const BookingConfirmation = ({ booking }) => {
   const location = useLocation();
@@ -107,7 +109,7 @@ const BookingConfirmation = ({ booking }) => {
     }
 
     return (
-      <div className="max-w-3xl mx-auto p-8 bg-[linear-gradient(300.13deg,#D9D9D9_8.16%,#FAF3DB_52.55%,#F4F4FF_106.01%)] rounded-2xl shadow-md text-center">
+      <div className="max-w-6xl mx-auto p-8 bg-[linear-gradient(300.13deg,#D9D9D9_8.16%,#FAF3DB_52.55%,#F4F4FF_106.01%)] rounded-2xl shadow-md text-center">
         <h2 className="text-2xl font-bold">No Flight Data Available</h2>
         <p className="text-gray-600 mt-2">
           We couldn't find flight details for this booking.
@@ -120,8 +122,8 @@ const BookingConfirmation = ({ booking }) => {
   const flight = bookingData.flights[0];
 
   const isFailed = flight.currentStatus === "Booking_Failed";
-  const isConfirmed =
-    flight.currentStatus === "Confirmed" || flight.currentStatus === "Ticketed";
+  const isConfirmed = flight.currentStatus === "Ticketed";
+  const isOnHold = flight.currentStatus === "Booking_On_Hold";
 
   const formatDateTime = (dt) => {
     if (!dt) return "N/A";
@@ -139,7 +141,7 @@ const BookingConfirmation = ({ booking }) => {
     }
   };
 
-  const getStatusIcon = () => {
+  const getStatusIcon = () => { 
     if (isConfirmed) return "✅";
     if (isFailed) return "❌";
     return "⏳";
@@ -165,8 +167,65 @@ const BookingConfirmation = ({ booking }) => {
     return "text-yellow-600";
   };
 
+  const handleIssueTicket = async () => {
+  try {
+    const { data } = await axiosClient.post("/api/flights/issue", {
+      orderId: bookingData.orderRefId,
+    });
+
+    toast.success("Ticket issued successfully!");
+
+    // Use the API response to update state
+    if (data?.flights) {
+      setBookingData((prev) => ({
+        ...prev,
+        flights: data.flights,
+      }));
+    } else {
+      // fallback if API doesn't return flights
+      setBookingData((prev) => ({
+        ...prev,
+        flights: prev.flights.map((f) => ({
+          ...f,
+          currentStatus: "Ticketed",
+        })),
+      }));
+    }
+  } catch (err) {
+    toast.error(err.response?.data?.message || "Failed to issue ticket.");
+  }
+};
+
+
+const handleCancelTicket = async () => {
+  try {
+    const { data } = await axiosClient.post("/api/flights/cancel", {
+      orderId: bookingData.orderRefId,
+    });
+
+    toast.success("Booking cancelled successfully!");
+
+    if (data?.flights) {
+      setBookingData((prev) => ({
+        ...prev,
+        flights: data.flights,
+      }));
+    } else {
+      setBookingData((prev) => ({
+        ...prev,
+        flights: prev.flights.map((f) => ({
+          ...f,
+          currentStatus: "Booking cancelled",
+        })),
+      }));
+    }
+  } catch (err) {
+    toast.error(err.response?.data?.message || "Failed to cancel booking.");
+  }
+};
+
   return (
-    <div className="max-w-3xl mx-auto space-y-6 mt-24 mb-10 px-4">
+    <div className="max-w-6xl mx-auto space-y-6 mt-24 mb-10 px-4">
       {/* Booking Header */}
       <div className="p-8 bg-white shadow-lg rounded-2xl text-center">
         <div className="text-4xl mb-3">{getStatusIcon()}</div>
@@ -366,6 +425,7 @@ const BookingConfirmation = ({ booking }) => {
       )}
 
       {/* Actions */}
+      {/* Actions */}
       <div className="text-center">
         {isConfirmed ? (
           <button className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
@@ -378,6 +438,21 @@ const BookingConfirmation = ({ booking }) => {
             </button>
             <button className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
               Contact Support
+            </button>
+          </div>
+        ) : isOnHold ? (
+          <div className="space-x-4">
+            <button
+              className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              onClick={handleCancelTicket}
+            >
+              Cancel Booking
+            </button>
+            <button
+              className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              onClick={handleIssueTicket}
+            >
+              Issue Booking
             </button>
           </div>
         ) : (

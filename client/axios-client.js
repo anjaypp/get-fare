@@ -8,19 +8,9 @@ const axiosClient = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+    withCredentials: true,
 });
 
-// // Request interceptor (optional: add auth token or custom headers)
-// axiosClient.interceptors.request.use(
-//   (config) => {
-//     const token = localStorage.getItem("token"); // or your auth storage
-//     if (token) {
-//       config.headers.Authorization = `Bearer ${token}`;
-//     }
-//     return config;
-//   },
-//   (error) => Promise.reject(error)
-// );
 
 // Response interceptor (optional: handle errors globally)
 axiosClient.interceptors.response.use(

@@ -1,13 +1,14 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { HiArrowsRightLeft } from "react-icons/hi2";
 import AutocompleteSelect from "./AutoCompleteSelect";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import CustomDateInput from "./CustomDateInput";
 
-const SearchSummary = ({ onModify }) => {
+const SearchSummary = ({ value, onModify }) => {
   const [tripType, setTripType] = useState("One Way");
   const [formData, setFormData] = useState(() => {
+    // fallback default
     const today = new Date();
     const oneWeekFromNow = new Date(today);
     oneWeekFromNow.setDate(today.getDate() + 7);
@@ -24,7 +25,7 @@ const SearchSummary = ({ onModify }) => {
         name: "Warsaw Chopin Airport",
       },
       departure: today,
-      returnDate: oneWeekFromNow, // Fixed: Now a proper Date object
+      returnDate: oneWeekFromNow,
       adults: 1,
       children: 0,
       infants: 0,
@@ -34,6 +35,10 @@ const SearchSummary = ({ onModify }) => {
   });
   const [showTravellerDialog, setShowTravellerDialog] = useState(false);
   const travellerRef = useRef(null);
+
+  useEffect(() => {
+    if (value) setFormData(value);
+  }, [value]);
 
   const handleSwap = () => {
     setFormData((prev) => ({

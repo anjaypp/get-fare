@@ -5,6 +5,7 @@ import { useInView } from "react-intersection-observer";
 import axiosClient from "../../axios-client";
 import LineLoader from "../components/LineLoader";
 import SearchSummary from "../components/SearchSummary";
+import FlightSkeleton from "../components/FlightSkeleton";
 import FlightSortBar from "../components/FlightSortBar";
 import CacheTimeoutModal from "../components/CacheTimeoutModal";
 import fetchFlights from "../utils/fetchFlights";
@@ -31,7 +32,7 @@ const SearchResults = () => {
 
   // Infinite query for pagination (starts after initial fetch)
   const queryResult = useInfiniteQuery({
-    queryKey: ['flights-paginate', currentResults?.traceId, sortConfig],
+    queryKey: ["flights-paginate", currentResults?.traceId, sortConfig],
     queryFn: async ({ pageParam = 2 }) => {
       const params = {
         traceId: currentResults.traceId,
@@ -43,7 +44,9 @@ const SearchResults = () => {
     },
     initialPageParam: 2,
     getNextPageParam: (lastPage, pages) => {
-      return lastPage.pagination?.totalPages > pages.length + 1 ? pages.length + 2 : undefined;
+      return lastPage.pagination?.totalPages > pages.length + 1
+        ? pages.length + 2
+        : undefined;
     },
     enabled: !!currentResults?.traceId,
   });
@@ -58,10 +61,13 @@ const SearchResults = () => {
   } = queryResult;
 
   // Flatten paginated flights (appended to initial)
-  const paginatedFlights = paginatedData?.pages?.flatMap((page) => page.flights) || [];
+  const paginatedFlights =
+    paginatedData?.pages?.flatMap((page, idx) =>
+      idx === 0 ? [] : page.flights
+    ) || [];
 
-  // Combine initial + paginated flights
   const flights = [...(currentResults?.flights || []), ...paginatedFlights];
+
   const totalFlights = currentResults?.pagination?.total || 0;
 
   // Trigger next page on sentinel view
@@ -82,7 +88,7 @@ const SearchResults = () => {
   useEffect(() => {
     if (currentResults?.flights) {
       // Invalidate pagination query to reset on new initial
-      queryClient.invalidateQueries({ queryKey: ['flights-paginate'] });
+      queryClient.invalidateQueries({ queryKey: ["flights-paginate"] });
     }
   }, [currentResults, queryClient]);
 
@@ -136,40 +142,53 @@ const SearchResults = () => {
       });
       setCurrentResults((prev) => ({ ...prev, flights: res.data.flights })); // Update initial flights for sort
       // Invalidate pagination to re-append with new order (if backend sort updates cache)
-      queryClient.invalidateQueries({ queryKey: ['flights-paginate'] });
+      queryClient.invalidateQueries({ queryKey: ["flights-paginate"] });
     } catch (err) {
       console.error("Sort failed:", err);
       toast.error("Sorting failed. Please try again.");
     }
   };
 
-  const handleBook = async (flight, purchaseId) => {
-    try {
-      setLoading(true);
-      const response = await axiosClient.post("/flights/revalidate", {
+  const handleBook = async (purchaseId) => {
+    navigate("/flight-review", {
+      state: {
         traceId: currentResults.traceId,
-        purchaseIds: [String(purchaseId)],
-      });
-
-      const revalidation = response.data;
-
-      if (!revalidation?.flights?.length) {
-        toast.error("Unable to validate fare. Please try again.");
-        return;
-      }
-
-      navigate("/flight-review", {
-        state: { revalidation, selectedFlight: flight, purchaseId },
-      });
-    } catch (error) {
-      toast.error(
-        error.response?.data?.message ||
-          "Network or server error. Please try again."
-      );
-    } finally {
-      setLoading(false);
-    }
+        purchaseId,
+      },
+    });
   };
+
+
+  const summaryData = searchPayload
+    ? {
+        origin: {
+          code: searchPayload.originDestinations[0].origin.toUpperCase(),
+          city: searchPayload.originDestinations[0].origin.toUpperCase(), 
+          name: searchPayload.originDestinations[0].name || "",
+        },
+        destination: {
+          code: searchPayload.originDestinations[0].destination.toUpperCase(),
+          city: searchPayload.originDestinations[0].destination.toUpperCase(),
+          name: "",
+        },
+        departure: new Date(
+          searchPayload.originDestinations[0].departureDateTime
+        ),
+        returnDate:
+          searchPayload.journeyType === 2 && searchPayload.originDestinations[1]
+            ? new Date(searchPayload.originDestinations[1].departureDateTime)
+            : null,
+        adults: searchPayload.adultCount,
+        children: searchPayload.childCount,
+        infants: searchPayload.infantCount,
+        travellers:
+          searchPayload.adultCount +
+          searchPayload.childCount +
+          searchPayload.infantCount,
+        cabin: searchPayload.cabinClass || "Economy",
+        direct: searchPayload.directOnly || false,
+      }
+    : null;
 
   const firstSegGroup = flights[0]?.segGroups?.[0];
   const fromCity = firstSegGroup?.origin || "Origin";
@@ -179,7 +198,7 @@ const SearchResults = () => {
     <div className="bg-[linear-gradient(300.13deg,#D9D9D9_8.16%,#FAF3DB_52.55%,#F4F4FF_106.01%)]">
       <LineLoader loading={loading || isFetchingNextPage} />
       <div className="pt-12 pb-18 max-w-6xl mx-auto">
-        <SearchSummary onModify={handleModifySearch} />
+        <SearchSummary value={summaryData} onModify={handleModifySearch} />
 
         <div className="flex flex-col md:flex-row gap-6">
           {/* Filters on left */}
@@ -190,33 +209,37 @@ const SearchResults = () => {
           {/* Flight cards on right */}
           <div className="md:w-3/4 flex flex-col gap-4">
             <FlightSortBar
-              totalFlights={totalFlights}
+              totalFlights={currentResults?.totalFlights || totalFlights}
               sortConfig={sortConfig}
               onSort={handleSort}
             />
 
             {loading ? (
-              <p className="p-6 text-center">Loading flights...</p>
+              <FlightSkeleton count={3} />
             ) : flights.length > 0 ? (
               <>
                 {flights.map((flight, idx) => (
                   <Suspense key={flight.id || idx}>
-                    <FlightCard
-                      flight={flight}
-                      onBook={handleBook}
-                    />
+                    <FlightCard flight={flight} onBook={handleBook} />
                   </Suspense>
                 ))}
                 {/* Sentinel for infinite scroll */}
                 {hasNextPage && (
-                  <div ref={sentinelRef} className="h-10 flex justify-center items-center">
-                    {isFetchingNextPage && <span>Loading more...</span>}
+                  <div ref={sentinelRef} className="w-full">
+                    {isFetchingNextPage && (
+                      <>
+                        <div className="mt-4">
+                          <FlightSkeleton count={2} />
+                        </div>
+                        <div className="pb-12"></div>
+                      </>
+                    )}
                   </div>
                 )}
               </>
             ) : isError ? (
               <p className="p-6 text-center text-red-500">
-                {queryError?.message || 'Unknown error'}. Please try again.
+                {queryError?.message || "Unknown error"}. Please try again.
               </p>
             ) : (
               <p className="p-6">
@@ -231,7 +254,9 @@ const SearchResults = () => {
           fromCity={fromCity}
           toCity={toCity}
           cacheTTL={15 * 60 * 1000}
-          onRefresh={() => fetchFlights(searchPayload, setCurrentResults, setLoading)}
+          onRefresh={() =>
+            fetchFlights(searchPayload, setCurrentResults, setLoading)
+          }
         />
       </div>
     </div>

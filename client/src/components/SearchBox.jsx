@@ -91,8 +91,6 @@ export default function SearchFlight() {
   };
 
   // Handle Search
-  //
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 

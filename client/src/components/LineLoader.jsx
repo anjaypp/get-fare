@@ -34,7 +34,7 @@ const LineLoader = ({ loading }) => {
         style={{
           width: `${width}%`,
           height: "100%",
-          backgroundColor: "#E5BC3B", 
+          backgroundColor: "#d08700", 
           transition: "width 0.2s ease-out",
         }}
       />
