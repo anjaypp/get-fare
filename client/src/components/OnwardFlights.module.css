@@ -77,7 +77,7 @@
 .verticalLine {
   height: 100%;
   width: 1px;
-  border-left: 3px dashed grey;
+  border-left: 1px solid grey;
   margin: 4px;
 }
 
@@ -100,9 +100,10 @@
 }
 
 .airportCode {
-  font-size: 16px;       
-  font-weight: 700;
-  color: #1a237e;    
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: #333333;    
 }
 
 .stopoverDetails {

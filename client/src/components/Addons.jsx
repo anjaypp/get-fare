@@ -25,7 +25,7 @@ const Addons = ({traceId, purchaseId}) => {
       };
 
       const res = await axiosClient.post("/flights/seat", body);
-      console.log("Seat Layout Response:", res.data);
+    
 
       if (res.data) {
         setSeatData(res.data);

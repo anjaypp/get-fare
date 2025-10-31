@@ -12,9 +12,15 @@ return [
 
     'allowed_headers' => ['*'],
 
-    'exposed_headers' => [],
+    'exposed_headers' => [
+    'X-Frame-Options',
+    'X-Content-Type-Options',
+    'Referrer-Policy',
+    'Permissions-Policy',
+    'Strict-Transport-Security',
+    ],
 
     'max_age' => 0,
 
-    'supports_credentials' => true, 
+    'supports_credentials' => true,
 ];

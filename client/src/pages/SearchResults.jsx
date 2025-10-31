@@ -102,6 +102,8 @@ const SearchResults = () => {
       {
         origin: formData.origin?.code?.toLowerCase() || "",
         destination: formData.destination?.code?.toLowerCase() || "",
+        originCity: formData.origin?.city || "",
+        destinationCity: formData.destination?.city || "",
         departureDateTime: formData.departure,
       },
     ];
@@ -110,6 +112,8 @@ const SearchResults = () => {
       originDestinations.push({
         origin: formData.destination?.code?.toLowerCase() || "",
         destination: formData.origin?.code?.toLowerCase() || "",
+        originCity: formData.origin?.city || "",
+        destinationCity: formData.destination?.city || "",
         departureDateTime: formData.returnDate,
       });
     }
@@ -149,27 +153,26 @@ const SearchResults = () => {
     }
   };
 
-  const handleBook = async (purchaseId) => {
+  const handleBook = async (flight, purchaseId) => {
     navigate("/flight-review", {
       state: {
         traceId: currentResults.traceId,
         purchaseId,
+        selectedFlight: flight
       },
     });
   };
-
 
   const summaryData = searchPayload
     ? {
         origin: {
           code: searchPayload.originDestinations[0].origin.toUpperCase(),
-          city: searchPayload.originDestinations[0].origin.toUpperCase(), 
-          name: searchPayload.originDestinations[0].name || "",
+          city: searchPayload.originDestinations[0].originCity, // use city from payload
         },
         destination: {
           code: searchPayload.originDestinations[0].destination.toUpperCase(),
-          city: searchPayload.originDestinations[0].destination.toUpperCase(),
-          name: "",
+          city: searchPayload.originDestinations[0].destinationCity,
+
         },
         departure: new Date(
           searchPayload.originDestinations[0].departureDateTime

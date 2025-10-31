@@ -9,7 +9,7 @@ const fetchFlights = async (payload, setCurrentResults, setLoading) => {
   try {
     const res = await axiosClient.post("/flights/search", payload);
     const data = res.data?.results || res.data;
-    console.log(res);
+    console.log("Fetched flight results:", data);
     setCurrentResults(data);
   } catch (err) {
     console.error("Search failed:", err);

@@ -100,6 +100,8 @@ export default function SearchFlight() {
         origin: formData.origin?.code?.toLowerCase() || "",
         destination: formData.destination?.code?.toLowerCase() || "",
         departureDateTime: formData.departure,
+        originCity: formData.origin.city,
+        destinationCity: formData.destination.city,
       },
     ];
 
@@ -109,6 +111,8 @@ export default function SearchFlight() {
         origin: formData.destination?.code?.toLowerCase() || "",
         destination: formData.origin?.code?.toLowerCase() || "",
         departureDateTime: formData.returnDate,
+        originCity: formData.destination.city,
+        destinationCity: formData.origin.city,
       });
     }
 

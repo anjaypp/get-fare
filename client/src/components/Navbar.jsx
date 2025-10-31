@@ -26,7 +26,9 @@ export default function Header() {
         {/* Logo */}
         <div className="flex items-center space-x-20">
           <div className="flex items-center space-x-2">
+            <Link to={'/'}>
             <img src={logo} alt="AFineTrip" className="h-auto w-25" />
+            </Link>
           </div>
 
           <nav className="flex items-center space-x-8">

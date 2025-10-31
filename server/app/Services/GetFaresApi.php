@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use App\Models\Airline;
+use App\Models\Airport;
 use App\Models\Booking;
 
 class GetFaresApi
@@ -108,18 +109,40 @@ public function searchFlights(array $data)
         $flights = $results['flights'];
 
         $airlineCodes = collect($flights)->pluck('airline')->unique();
+        $allCodes = collect($flights)
+        ->flatMap(fn($f) =>
+        collect($f['segGroups'])
+            ->flatMap(fn($sg) =>
+                collect($sg['segs'])
+                    ->flatMap(fn($s) => [$s['origin'], $s['destination']])
+            )
+        )
+        ->unique()
+        ->values()
+        ->toArray();
+
         $airlines = Airline::whereIn('Iata_code', $airlineCodes)->get();
         $airlineMap = $airlines->pluck('Airline_name', 'Iata_code');
+        $airportMap = Airport::whereIn('iata_code', $allCodes)->pluck('city_name', 'iata_code');
 
         $filteredFlights = [];
 
         foreach ($flights as &$flight) {
-            $flight['airlineName'] = $airlineMap[$flight['airline']] ?? $flight['airline'];
+            $flight['airlineName'] = $airlineMap[$flight['airline']] ?? $flight['airline'] ?? 'Unknown Airline';
+
+        foreach ($flight['segGroups'] as &$segGroup) {
+                 $segGroup['originCity'] = $airportMap[$segGroup['origin']] ?? $segGroup['origin'];
+                $segGroup['destinationCity'] = $airportMap[$segGroup['destination']] ?? $segGroup['destination'];
+
+        foreach ($segGroup['segs'] as &$seg) {
+            $seg['originCity'] = $airportMap[$seg['origin']] ?? $seg['origin'];
+            $seg['destinationCity'] = $airportMap[$seg['destination']] ?? $seg['destination'];
+        }
+    }
 
             // Filter fareGroups with seats only
             $flight['fareGroups'] = array_values(array_filter($flight['fareGroups'] ?? [], function ($fareGroup) {
                 foreach ($fareGroup['segInfos'] ?? [] as $seg) {
-                    Log::info("SegInfo check: seatRemaining = " . json_encode($seg['seatRemaining'] ?? 'MISSING'));
                     if (!empty($seg['seatRemaining']) && $seg['seatRemaining'] > 0) {
                         return true;
                     }
@@ -168,15 +191,12 @@ public function searchFlights(array $data)
             $flight['arrivalTime'] = $lastOutboundSeg['arrivalOn'] ?? null;
 
             // returnDepartTime (return for round-trip; fallback to arrivalTime for one-way)
-            $returnDepartTime = null;
-            if (isset($flight['segGroups'][1])) {
-                $returnSegs = $flight['segGroups'][1]['segs'] ?? [];
-                $firstReturnSeg = reset($returnSegs);
-                $returnDepartTime = $firstReturnSeg['departureOn'] ?? null;
+            if (!empty($flight['segGroups'][1]['segs'])) {
+                $firstReturnSeg = reset($flight['segGroups'][1]['segs']);
+                $flight['returnDepartTime'] = $firstReturnSeg['departureOn'] ?? null;
             } else {
-                $returnDepartTime = $flight['arrivalTime'];
+                $flight['returnDepartTime'] = $flight['arrivalTime'] ?? null;
             }
-            $flight['returnDepartTime'] = $returnDepartTime;
 
             // totalStops
             $stops = 0;
@@ -219,7 +239,7 @@ public function searchFlights(array $data)
 
             $results['flights'] = $paginatedFlights;
         }
-    } else {
+        } else {
         // No raw flights from API - return empty structure
         $traceId = $results['traceId'] ?? Str::uuid()->toString();
         $results['flights'] = [];
@@ -417,7 +437,6 @@ public function getSeatLayout(array $data){
 
     Storage::put('request/seatlayout_payload.json', json_encode($payload, JSON_PRETTY_PRINT));
 
-
     $response = Http::withToken($token)
             ->retry(2, 200)
             ->timeout(25)
@@ -425,10 +444,8 @@ public function getSeatLayout(array $data){
 
     Storage::put('response/seatlayout_response.json', json_encode($response->json(), JSON_PRETTY_PRINT));
 
-
     return $response->json();
 }
-
 
 public function getBooking(string $orderId)
 {

@@ -14,10 +14,10 @@ const FlightFilter = () => {
   };
 
   const timeOptions = [
-    { icon: <WiSunrise className="text-[#E5BC3B]" size={24} />, label: "05-12" },
-    { icon: <WiDaySunny className="text-[#E5BC3B]" size={24} />, label: "12-18" },
-    { icon: <WiSunset className="text-[#E5BC3B]" size={24} />, label: "18-24" },
-    { icon: <WiNightClear className="text-[#E5BC3B]" size={24} />, label: "00-05" },
+    { icon: <WiSunrise className=" text-[#8C897E]" size={24} />, label: "05-12" },
+    { icon: <WiDaySunny className="text-[#8C897E]" size={24} />, label: "12-18" },
+    { icon: <WiSunset className="text-[#8C897E]" size={24} />, label: "18-24" },
+    { icon: <WiNightClear className="text-[#8C897E]" size={24} />, label: "00-05" },
   ];
 
   return (

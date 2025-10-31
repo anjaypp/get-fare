@@ -42,6 +42,7 @@ const AutocompleteSelect = ({
             headers: { "Cache-Control": "no-cache, no-store, must-revalidate" },
           }
         );
+
         setItems(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error(`Error fetching ${type}s:`, err);
@@ -78,10 +79,6 @@ const AutocompleteSelect = ({
 
   const displayValue = (item) => {
   if (!item) return query; // if no item, show whatever is in query
-
-  if (size === "summary") {
-    return `${item.city}, ${item.code}`;
-  }
 
   if (hideSelectedInInput) return query || "";
 

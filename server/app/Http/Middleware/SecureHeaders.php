@@ -4,11 +4,15 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class SecureHeaders
 {
     public function handle(Request $request, Closure $next)
     {
+
+        Log::info('🔒 SecureHeaders middleware executing for: ' . $request->path());
+
         $response = $next($request);
 
         // Prevent clickjacking

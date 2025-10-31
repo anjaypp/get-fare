@@ -169,7 +169,7 @@ const BookingConfirmation = ({ booking }) => {
 
   const handleIssueTicket = async () => {
   try {
-    const { data } = await axiosClient.post("/api/flights/issue", {
+    const { data } = await axiosClient.post("/flights/booking/issue", {
       orderId: bookingData.orderRefId,
     });
 
@@ -199,7 +199,7 @@ const BookingConfirmation = ({ booking }) => {
 
 const handleCancelTicket = async () => {
   try {
-    const { data } = await axiosClient.post("/api/flights/cancel", {
+    const { data } = await axiosClient.post("/flights/booking/cancel", {
       orderId: bookingData.orderRefId,
     });
 

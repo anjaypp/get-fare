@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { FaChevronUp, FaChevronDown } from "react-icons/fa";
 
-const PriceSummary = ({ flight, fareGroup }) => {
+const PriceSummary = ({ flight, fareGroup, isRevalidating }) => {
   const [baseFareOpen, setBaseFareOpen] = useState(false);
   const [taxOpen, setTaxOpen] = useState(false);
 
@@ -10,27 +10,30 @@ const PriceSummary = ({ flight, fareGroup }) => {
   const paxTypeLabels = {
     ADT: "Adult",
     CHD: "Child",
-    INF: "Infant"
+    INF: "Infant",
   };
 
   // Count passengers by type
   const paxCounts = {
     ADT: flight?.adtNum || 0,
     CHD: flight?.chdNum || 0,
-    INF: flight?.infNum || 0
+    INF: flight?.infNum || 0,
   };
 
   // Calculate totals
-  const totalBase = fareGroup.fares?.reduce((sum, fare) => {
-    const count = paxCounts[fare.paxType] || 1;
-    return sum + (fare.base || 0) * count;
-  }, 0) || 0;
+  const totalBase =
+    fareGroup.fares?.reduce((sum, fare) => {
+      const count = paxCounts[fare.paxType] || 1;
+      return sum + (fare.base || 0) * count;
+    }, 0) || 0;
 
-  const totalTax = fareGroup.fares?.reduce((sum, fare) => {
-    const count = paxCounts[fare.paxType] || 1;
-    const fareTax = fare.taxes?.reduce((taxSum, tax) => taxSum + (tax.amt || 0), 0) || 0;
-    return sum + fareTax * count;
-  }, 0) || 0;
+  const totalTax =
+    fareGroup.fares?.reduce((sum, fare) => {
+      const count = paxCounts[fare.paxType] || 1;
+      const fareTax =
+        fare.taxes?.reduce((taxSum, tax) => taxSum + (tax.amt || 0), 0) || 0;
+      return sum + fareTax * count;
+    }, 0) || 0;
 
   const grandTotal = totalBase + totalTax;
 
@@ -49,9 +52,18 @@ const PriceSummary = ({ flight, fareGroup }) => {
           >
             <span className="font-medium">Base Fare</span>
             <div className="flex items-center gap-2">
-              <span className="font-semibold">
-                ₹ {totalBase.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-              </span>
+              {isRevalidating ? (
+                <div className="h-6 w-32 bg-gray-300 animate-pulse rounded-md" />
+              ) : (
+                <span className="font-semibold">
+                  ₹{" "}
+                  {totalBase.toLocaleString("en-IN", {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  })}
+                </span>
+              )}
+
               {baseFareOpen ? (
                 <FaChevronUp size={16} className="text-indigo-900" />
               ) : (
@@ -66,12 +78,22 @@ const PriceSummary = ({ flight, fareGroup }) => {
                 const count = paxCounts[fare.paxType] || 0;
                 if (count === 0) return null;
                 return (
-                  <div key={idx} className="flex justify-between text-xs text-gray-600">
+                  <div
+                    key={idx}
+                    className="flex justify-between text-xs text-gray-600"
+                  >
                     <span>
-                      {paxTypeLabels[fare.paxType]} ({count} x {(fare.base || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })})
+                      {paxTypeLabels[fare.paxType]} ({count} x{" "}
+                      {(fare.base || 0).toLocaleString("en-IN", {
+                        minimumFractionDigits: 2,
+                      })}
+                      )
                     </span>
                     <span>
-                      ₹ {((fare.base || 0) * count).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      ₹{" "}
+                      {((fare.base || 0) * count).toLocaleString("en-IN", {
+                        minimumFractionDigits: 2,
+                      })}
                     </span>
                   </div>
                 );
@@ -88,9 +110,18 @@ const PriceSummary = ({ flight, fareGroup }) => {
           >
             <span className="font-medium">Tax & Charges</span>
             <div className="flex items-center gap-2">
-              <span className="font-semibold">
-                ₹ {totalTax.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-              </span>
+              {isRevalidating ? (
+                <div className="h-6 w-32 bg-gray-300 animate-pulse rounded-md" />
+              ) : (
+                <span className="font-semibold">
+                  ₹{" "}
+                  {totalTax.toLocaleString("en-IN", {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  })}
+                </span>
+              )}
+
               {taxOpen ? (
                 <FaChevronUp size={16} className="text-indigo-900" />
               ) : (
@@ -105,12 +136,22 @@ const PriceSummary = ({ flight, fareGroup }) => {
                 const count = paxCounts[fare.paxType] || 0;
                 if (count === 0) return null;
                 return fare.taxes?.map((tax, taxIdx) => (
-                  <div key={`${idx}-${taxIdx}`} className="flex justify-between text-xs text-gray-600">
+                  <div
+                    key={`${idx}-${taxIdx}`}
+                    className="flex justify-between text-xs text-gray-600"
+                  >
                     <span>
-                      {paxTypeLabels[fare.paxType]} {tax.code} ({count} x {(tax.amt || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })})
+                      {paxTypeLabels[fare.paxType]} {tax.code} ({count} x{" "}
+                      {(tax.amt || 0).toLocaleString("en-IN", {
+                        minimumFractionDigits: 2,
+                      })}
+                      )
                     </span>
                     <span>
-                      ₹ {((tax.amt || 0) * count).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      ₹{" "}
+                      {((tax.amt || 0) * count).toLocaleString("en-IN", {
+                        minimumFractionDigits: 2,
+                      })}
                     </span>
                   </div>
                 ));
@@ -121,10 +162,20 @@ const PriceSummary = ({ flight, fareGroup }) => {
 
         {/* Total Amount */}
         <div className="flex items-center justify-between pt-1">
-          <span className="text-base font-semibold text-indigo-900">Total Amount</span>
-          <span className="text-base font-bold text-indigo-900">
-            ₹ {grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+          <span className="text-base font-semibold text-indigo-900">
+            Total Amount
           </span>
+          {isRevalidating ? (
+            <div className="h-8 w-32 bg-gray-300 animate-pulse rounded-md" />
+          ) : (
+            <span className="text-base font-bold text-indigo-900">
+              ₹{" "}
+              {grandTotal.toLocaleString("en-IN", {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+              })}
+            </span>
+          )}
         </div>
       </div>
     </div>

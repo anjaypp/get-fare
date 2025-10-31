@@ -8,6 +8,7 @@ import { MdOutlineAirlineSeatReclineExtra, MdBackpack } from "react-icons/md";
 import FareDetails from "./FareDetails";
 import OnwardFlights from "./OnwardFlights";
 
+
 const FlightCard = ({ flight, onBook }) => {
   const [showFares, setShowFares] = useState(false);
   const [showFlightDetails, setShowFlightDetails] = useState(false);
@@ -27,6 +28,12 @@ const FlightCard = ({ flight, onBook }) => {
     if (weight) return `${weight} kg`;
     return "No allowance";
   };
+
+  const formatTime = (timeStr) => {
+  const d = new Date(timeStr);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
+
 
   // Filter fare groups with fares
   const availableFareGroups =
@@ -55,6 +62,42 @@ const FlightCard = ({ flight, onBook }) => {
           )
         )
       : 0;
+
+  const getFlightRoutes = (segGroups) => {
+    if (!segGroups || segGroups.length === 0) return [];
+
+    return segGroups.map((group, i) => {
+      const segs = group.segs ?? [];
+      if (segs.length === 0) return null;
+
+      const route = [segs[0].origin, ...segs.map((seg) => seg.destination)];
+
+      return (
+        <div key={i} className="flex items-center flex-wrap gap-1 text-[0.75em]">
+          {route.map((code, idx) => {
+            const isStop = idx > 0 && idx < route.length - 1;
+            return (
+              <React.Fragment key={code + idx}>
+                <span
+                  className={`${
+                    isStop
+                      ? "text-gray-700" // darker for stops
+                      : "text-gray-600" // lighter for origin/destination
+                  }`}
+                >
+                  {code}
+                </span>
+                {idx < route.length - 1 && (
+                  <span className="text-gray-500">-</span>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
+      );
+    });
+  };
+
   const seatsRemaining = totalSeats === Infinity ? 0 : totalSeats;
 
   return (
@@ -82,7 +125,7 @@ const FlightCard = ({ flight, onBook }) => {
           </div>
 
           <div className="flex flex-col items-center space-y-3 mr-5">
-            {flight.segGroups.map((group, idx) => {
+            {flight.segGroups?.map((group, idx) => {
               const firstSeg = group.segs[0];
               const lastSeg = group.segs[group.segs.length - 1];
               const totalDuration = group.segs.reduce(
@@ -94,46 +137,41 @@ const FlightCard = ({ flight, onBook }) => {
               return (
                 <div
                   key={idx}
-                  className="flex items-center space-x-8 border-b border-gray-200 pb-3 last:border-none"
+                  className="flex items-center space-x-14 border-b border-gray-200 pb-3 last:border-none"
                 >
                   {/* Departure */}
                   <div className="flex flex-col items-center">
                     <p className="text-lg font-bold text-[#15144E]">
-                      {new Date(firstSeg.departureOn).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      {formatTime(firstSeg.departureOn)}
                     </p>
-                    <p className="text-sm text-[#6E6E6E]">{firstSeg.origin}</p>
+                    <p className="text-sm text-[#6E6E6E]">
+                      {firstSeg.originCity}
+                    </p>
                   </div>
 
                   {/* Flight Path */}
-                  <div className="flex flex-col items-center text-center text-[#6E6E6E]">
-                    <p className="text-sm">
+                  <div className="flex flex-col items-center text-center">
+                    <p className="text-[0.75em] text-[#6b7280]">
+                      {Math.floor(totalDuration / 60)}h {totalDuration % 60}m |{" "}
                       {stops === 0
                         ? "Non-stop"
                         : `${stops} stop${stops > 1 ? "s" : ""}`}
                     </p>
-                    <div className="flex items-center my-1">
+                    <div className="flex items-center">
                       <GoDotFill className="text-[#312c85]" />
-                      <div className="w-16 border-t border-gray-300 mx-2"></div>
+                      <div className="w-[72px] border-t border-gray-300 mx-3"></div>
                       <IoAirplane className="text-[#312c85]" />
                     </div>
-                    <p className="text-sm">
-                      {Math.floor(totalDuration / 60)}h {totalDuration % 60}m
-                    </p>
+                      {getFlightRoutes([group])[0]}
                   </div>
 
                   {/* Arrival */}
                   <div className="flex flex-col items-center">
                     <p className="text-lg font-bold text-[#15144E]">
-                      {new Date(lastSeg.arrivalOn).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      {formatTime(lastSeg.arrivalOn)}
                     </p>
                     <p className="text-sm text-[#6E6E6E]">
-                      {lastSeg.destination}
+                      {lastSeg.destinationCity}
                     </p>
                   </div>
                 </div>
@@ -153,9 +191,7 @@ const FlightCard = ({ flight, onBook }) => {
 
             {availableFareGroups.length === 1 ? (
               <button
-                onClick={() =>
-                  onBook(availableFareGroups[0].purchaseId)
-                }
+                onClick={() => onBook(flight,availableFareGroups[0].purchaseId)}
                 className="mt-2 px-6 py-2 bg-indigo-950 text-white text-sm rounded-md hover:bg-indigo-900 cursor-pointer"
               >
                 Book Now
@@ -190,7 +226,7 @@ const FlightCard = ({ flight, onBook }) => {
               <span>
                 Check-In:{" "}
                 {formatBaggageAllowance(
-                  flight?.fareGroups[0].baggages?.[0].checkInBag
+                  flight?.fareGroups[0].baggages?.[0]?.checkInBag
                 )}
               </span>
             </div>
@@ -200,7 +236,7 @@ const FlightCard = ({ flight, onBook }) => {
               <span>
                 Cabin:{" "}
                 {formatBaggageAllowance(
-                  flight?.fareGroups[0].baggages?.[0].cabinBag
+                  flight?.fareGroups[0].baggages?.[0]?.cabinBag
                 )}
               </span>
             </div>
@@ -214,7 +250,7 @@ const FlightCard = ({ flight, onBook }) => {
           {/* Right: Flight Details toggle */}
           <button
             onClick={() => setShowFlightDetails((prev) => !prev)}
-            className="mt-2 md:mt-0 flex items-center space-x-1 text-sm text-indigo-950 font-medium focus:outline-none hover:text-indigo-800"
+            className="mt-2 md:mt-0 flex items-center space-x-1 text-sm text-indigo-950 font-medium focus:outline-none hover:text-indigo-800 cursor-pointer"
           >
             <span>Flight Details</span>
             {showFlightDetails ? (

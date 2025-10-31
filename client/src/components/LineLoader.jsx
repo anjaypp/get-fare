@@ -1,28 +1,45 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 
 const LineLoader = ({ loading }) => {
   const [width, setWidth] = useState(0);
+  const [visible, setVisible] = useState(false);
+  const intervalRef = useRef(null);
 
   useEffect(() => {
-    let interval;
     if (loading) {
+      setVisible(true);
       setWidth(0);
-      interval = setInterval(() => {
-        setWidth((prev) => (prev < 90 ? prev + Math.random() * 5 : prev));
-      }, 100);
+
+      intervalRef.current = setInterval(() => {
+        setWidth((prev) => {
+          // Slowly increase, more slowly as it nears 90%
+          const increment = (90 - prev) / 10;
+          return Math.min(prev + increment, 90);
+        });
+      }, 200);
     } else {
+      clearInterval(intervalRef.current);
       setWidth(100);
-      const timeout = setTimeout(() => setWidth(0), 300);
+
+      // Fade out after width reaches 100%
+      const timeout = setTimeout(() => {
+        setVisible(false);
+        setWidth(0);
+      }, 400);
+
       return () => clearTimeout(timeout);
     }
-    return () => clearInterval(interval);
+
+    return () => clearInterval(intervalRef.current);
   }, [loading]);
+
+  if (!visible) return null;
 
   return (
     <div
       style={{
         position: "absolute",
-        top: "110px", // adjust based on navbar height
+        top: "110px",
         left: 0,
         height: "4px",
         width: "100%",
@@ -34,7 +51,7 @@ const LineLoader = ({ loading }) => {
         style={{
           width: `${width}%`,
           height: "100%",
-          backgroundColor: "#d08700", 
+          backgroundColor: "#1e1a4d",
           transition: "width 0.2s ease-out",
         }}
       />

@@ -2,10 +2,12 @@ import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axiosClient from "../../axios-client";
 import toast from "react-hot-toast";
+import airlineLogos from "../utils/airlineLogos";
 import PriceSummary from "../components/PriceSummary";
 import LoadingModal from "../components/LoadingModal";
 import TourCodeCard from "../components/TourCodeCard";
-import RevalidationSkeleton from "../components/RevalidationSkeleton";
+import PassengerFormSkeleton from "../components/PassengerFormSkeleton";
+import ContactDetailsSkeleton from "../components/ContactDetailsSkeleton";
 import ContactDetailsForm from "../components/ContactDetailsForm";
 import Addons from "../components/Addons";
 import PassengerForm from "../components/PassengerForm";
@@ -15,6 +17,7 @@ import {
   FaInfoCircle,
 } from "react-icons/fa";
 import { MdAirplanemodeActive } from "react-icons/md";
+import AddonsSkeleton from "../components/AddonsSkeleton";
 
 const RevalidationPage = () => {
   const [isFareRulesOpen, setIsFareRulesOpen] = useState(false);
@@ -28,8 +31,11 @@ const RevalidationPage = () => {
 
   const location = useLocation();
   const navigate = useNavigate();
-  const { traceId, purchaseId } = location.state || {};
-  const [revalidation, setRevalidation] = useState(null);
+  const { traceId, purchaseId, selectedFlight } = location.state || {};
+  const [revalidation, setRevalidation] = useState(
+    selectedFlight?.flights ? selectedFlight : { flights: [selectedFlight] }
+  );
+  const [isRevalidating, setIsRevalidating] = useState(true);
 
   useEffect(() => {
     const fetchRevalidation = async () => {
@@ -39,7 +45,7 @@ const RevalidationPage = () => {
         return;
       }
 
-      setLoading(true);
+      setIsRevalidating(true);
 
       try {
         const res = await axiosClient.post("/flights/revalidate", {
@@ -62,22 +68,33 @@ const RevalidationPage = () => {
         );
         navigate("/");
       } finally {
-        setLoading(false);
+        setIsRevalidating(false);
       }
     };
 
     fetchRevalidation();
   }, [traceId, purchaseId, navigate]);
 
-  if (loading) {
-    return <RevalidationSkeleton />;
-  }
-
   if (!revalidation) {
     return <p className="p-6">No revalidation data. Please search again.</p>;
   }
 
-  const flight = revalidation.flights?.[0];
+  const extractWeightKg = (text) => {
+    if (!text) return null;
+    const match = text.match(/(\d+)\s*(?:kg|kilogram)/i);
+    return match ? parseInt(match[1], 10) : null;
+  };
+
+  // Format baggage allowance
+  const formatBaggageAllowance = (text) => {
+    if (!text) return "No allowance";
+    if (/onallowance/i.test(text)) return "On allowance";
+    const weight = extractWeightKg(text);
+    if (weight) return `${weight} kg`;
+    return "No allowance";
+  };
+
+  const flight = revalidation?.flights?.[0];
   const fareGroup = flight?.fareGroups?.[0];
   const passengerFields = revalidation.passengerRequiredFields || [];
 
@@ -211,12 +228,14 @@ const RevalidationPage = () => {
           day: "numeric",
         })
       : "N/A";
+
   const formatDuration = (minutes) => {
     if (!minutes) return "N/A";
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return `${hours}h ${mins}m`;
   };
+
   const calculateLayover = (arrivalTime, departureTime) => {
     if (!arrivalTime || !departureTime) return "N/A";
     const layoverMinutes = Math.floor(
@@ -224,6 +243,7 @@ const RevalidationPage = () => {
     );
     return formatDuration(layoverMinutes);
   };
+
   const getAirlineName = (code) => {
     const airlines = {
       "6E": "IndiGo",
@@ -241,6 +261,7 @@ const RevalidationPage = () => {
   const destination = firstSegGroup?.destination || "N/A";
   const departureDate = firstSegGroup?.departureOn;
   const totalSegments = firstSegGroup?.segs?.length || 0;
+  const isRefundable = flight?.fareGroup?.refundable;
 
   // Calculate total duration and stops
   const allSegments = flight?.segGroups?.flatMap((sg) => sg.segs || []) || [];
@@ -255,16 +276,6 @@ const RevalidationPage = () => {
   return (
     <div className="min-h-screen bg-[linear-gradient(300.13deg,#D9D9D9_8.16%,#FAF3DB_52.55%,#F4F4FF_106.01%)]">
       <div className="max-w-6xl mx-auto pt-12 pb-12 ">
-        {/* <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold mb-6">Review Your Flight</h2>
-        <span
-          onClick={() => setIsFareRulesOpen(true)}
-          className="text-ms text-blue-600"
-        >
-          View Fare Rules
-        </span>
-      </div> */}
-
         {/* Flight Segments & Passenger Form */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
@@ -299,12 +310,27 @@ const RevalidationPage = () => {
                     </div>
                   </div>
                 </div>
-                <button
-                  onClick={() => setIsFareRulesOpen(true)}
-                  className="text-indigo-900 hover:text-indigo-950 font-medium underline text-sm"
-                >
-                  Fare Rules
-                </button>
+                <div className="flex flex-col items-end gap-2">
+                  <div>
+                    <FaInfoCircle className="text-[13px] text-indigo-950 inline mt-0.5 me-1"/>
+                  <button
+                    onClick={() => setIsFareRulesOpen(true)}
+                    className="text-indigo-900 hover:text-indigo-950 font-medium underline text-sm cursor-pointer"
+                  >
+                    Fare Rules
+                  </button>
+                  </div>
+
+                  <span
+                    className={`text-xs font-semibold px-3 py-1 rounded-full ${
+                      isRefundable
+                        ? "bg-green-100 text-green-700 border border-green-300"
+                        : "bg-red-100 text-red-700 border border-red-300"
+                    }`}
+                  >
+                    {isRefundable ? "Refundable" : "Non-refundable"}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -325,22 +351,15 @@ const RevalidationPage = () => {
                           <div className="flex flex-col md:flex-row justify-between gap-6">
                             <div className="flex items-center gap-3 w-full md:w-1/4">
                               <div className="text-center">
-                                <img
-                                  src={`/react/flight_logos/${
-                                    seg.mrkAirline || "AA"
-                                  }.webp`}
-                                  alt={getAirlineName(seg.mrkAirline || "AA")}
-                                  className="w-20 h-20 rounded object-contain mx-auto"
-                                  onError={(e) => {
-                                    e.target.style.display = "none";
-                                    e.target.nextSibling.style.display = "flex";
-                                  }}
-                                />
-                                <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
-                                  <span className="text-blue-600 font-bold text-xs">
-                                    {seg.mrkAirline || "AA"}
-                                  </span>
+                                <div className="w-15 h-15 border border-gray-200 rounded-sm flex items-center justify-center mx-auto ">
+                                  <img
+                                    src={airlineLogos[flight.airline]}
+                                    alt={flight.airline}
+                                    className="h-8"
+                                    loading="lazy"
+                                  />
                                 </div>
+
                                 <p className="p-2 text-sm text-[#12114A] font-medium">
                                   {getAirlineName(seg.mrkAirline || "AA")} -{" "}
                                   {seg.flightNum || "N/A"}
@@ -370,7 +389,8 @@ const RevalidationPage = () => {
                               </div>
 
                               <div className="w-1/6 flex flex-col items-center text-gray-400">
-                                <span className="h-28 w-px bg-gray-300 my-1"></span>
+                                {/* Line */}
+                                <span className="h-28 w-px border-l-4 border-dotted border-gray-300 my-1"></span>
                                 <MdAirplanemodeActive className="text-lg" />
                               </div>
 
@@ -403,23 +423,55 @@ const RevalidationPage = () => {
                               </div>
                             </div>
 
-                            <div className="w-full md:w-1/4">
+                            <div className="w-full md:w-1/3">
                               <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
                                 <p className="text-[#12114A] font-semibold mb-2">
                                   Free Baggage Detail
                                 </p>
-                                <div className="flex items-start gap-2 text-sm text-gray-700 mb-1">
-                                  <FaSuitcase className="mt-0.5 text-yellow-600" />
-                                  <p>Check In: 15 kg</p>
-                                </div>
-                                <div className="flex items-start gap-2 text-sm text-gray-700 mb-1">
-                                  <FaSuitcase className="mt-0.5 text-yellow-600" />
-                                  <p>Cabin: 7 kg</p>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm text-[#12114A] font-medium cursor-pointer">
-                                  <FaInfoCircle className="text-yellow-600" />
-                                  <span>Information</span>
-                                </div>
+
+                                {(() => {
+                                  // Build the city pair for the current segment
+                                  const cityPair = `${seg.origin}${seg.destination}`;
+                                  const bag =
+                                    flight?.fareGroups?.[0]?.baggages?.find(
+                                      (b) => b.cityPair === cityPair
+                                    );
+
+                                  if (!bag) {
+                                    return (
+                                      <p className="text-sm text-gray-600">
+                                        No baggage information available.
+                                      </p>
+                                    );
+                                  }
+
+                                  return (
+                                    <>
+                                    
+                                      {/* Check-in baggage */}
+                                      <div className="flex items-center gap-2 text-sm text-gray-700 mb-1">
+                                        <FaSuitcase className="text-yellow-600" />
+                                        <span>
+                                          Check-In:{" "}
+                                          {formatBaggageAllowance(
+                                            bag.checkInBag
+                                          ) || "N/A"}
+                                        </span>
+                                      </div>
+
+                                      {/* Cabin baggage */}
+                                      <div className="flex items-center gap-2 text-sm text-gray-700 mb-1">
+                                        <FaSuitcase className="text-yellow-600" />
+                                        <span>
+                                          Cabin:{" "}
+                                          {formatBaggageAllowance(
+                                            bag.cabinBag
+                                          ) || "N/A"}
+                                        </span>
+                                      </div>
+                                    </>
+                                  );
+                                })()}
                               </div>
                             </div>
                           </div>
@@ -459,32 +511,50 @@ const RevalidationPage = () => {
               <p className="text-gray-600 p-4">No flight segments available.</p>
             )}
 
-            <h2 className="text-2xl font-semibold text-indigo-900 m-4">
-              Passenger Information
-            </h2>
-            <PassengerForm
-              passengerFields={passengerFields}
-              flight={flight}
-              onPassengerDataChange={handlePassengerDataChange}
-            />
+            {isRevalidating ? (
+              <PassengerFormSkeleton />
+            ) : (
+              <>
+                <h2 className="text-2xl font-semibold text-indigo-900 m-4">
+                  Passenger Information
+                </h2>
+                <PassengerForm
+                  passengerFields={passengerFields}
+                  flight={flight}
+                  onPassengerDataChange={handlePassengerDataChange}
+                />
+              </>
+            )}
 
-            <h2 className="text-2xl font-semibold text-indigo-900 m-4">
-              Contact Details
-            </h2>
-            <ContactDetailsForm
-              contactData={contactData}
-              onContactChange={setContactData}
-            />
+            {isRevalidating ? (
+              <ContactDetailsSkeleton />
+            ) : (
+              <>
+                <h2 className="text-2xl font-semibold text-indigo-900 m-4">
+                  Contact Details
+                </h2>
+                <ContactDetailsForm
+                  contactData={contactData}
+                  onContactChange={setContactData}
+                />
+              </>
+            )}
 
-            <h2 className="text-2xl font-semibold text-indigo-900 m-4">
-              Addons (Optional)
-            </h2>
-            <Addons traceId={traceId} purchaseId={purchaseId}/>
+            {isRevalidating ? (
+              <AddonsSkeleton />
+            ) : (
+              <>
+                <h2 className="text-2xl font-semibold text-indigo-900 m-4">
+                  Addons (Optional)
+                </h2>
+                <Addons traceId={traceId} purchaseId={purchaseId} />
+              </>
+            )}
           </div>
 
           {/* Right Panel: Price Summary */}
           <div className="lg:col-span-1 relative">
-            <PriceSummary flight={flight} fareGroup={fareGroup} />
+            <PriceSummary flight={flight} fareGroup={fareGroup} isRevalidating={isRevalidating} />
             <TourCodeCard />
 
             {/* Sticky action buttons */}
@@ -532,16 +602,16 @@ const RevalidationPage = () => {
                       .map((rule, index) => (
                         <div
                           key={index}
-                          className="border-l-4 border-blue-400 pl-3 py-2 mb-2 bg-gray-50 rounded"
+                          className="border-l-4 border-indigo-950 pl-3 py-2 mb-2 bg-indigo-200 rounded"
                         >
-                          <p className="text-sm text-gray-700">
-                            <strong>When:</strong> {rule.apply}
+                          <p className="text-sm">
+                             {rule.apply}
                           </p>
-                          <p className="text-sm text-gray-700">
+                          <p className="text-sm">
                             <strong>Fee:</strong> ₹{rule.exgAmt || 0}
                           </p>
                           {rule.remarks && (
-                            <p className="text-xs text-gray-500 mt-1 italic">
+                            <p className="text-xs mt-1 italic">
                               {rule.remarks}
                             </p>
                           )}
@@ -559,16 +629,16 @@ const RevalidationPage = () => {
                       .map((rule, index) => (
                         <div
                           key={index}
-                          className="border-l-4 border-red-400 pl-3 py-2 mb-2 bg-gray-50 rounded"
+                          className="border-l-4 border-indigo-950 pl-3 py-2 mb-2 bg-indigo-200 rounded"
                         >
-                          <p className="text-sm text-gray-700">
-                            <strong>When:</strong> {rule.apply}
+                          <p className="text-sm">
+                            {rule.apply}
                           </p>
-                          <p className="text-sm text-gray-700">
+                          <p className="text-sm">
                             <strong>Fee:</strong> ₹{rule.canAmt || 0}
                           </p>
                           {rule.remarks && (
-                            <p className="text-xs text-gray-500 mt-1 italic">
+                            <p className="text-xs mt-1 italic">
                               {rule.remarks}
                             </p>
                           )}

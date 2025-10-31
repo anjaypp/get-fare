@@ -37,7 +37,34 @@ const SearchSummary = ({ value, onModify }) => {
   const travellerRef = useRef(null);
 
   useEffect(() => {
-    if (value) setFormData(value);
+    if (value) {
+      setFormData((prev) => ({
+        ...prev,
+        origin: value.origin
+          ? value.origin
+          : {
+              code: value.originCode || prev.origin.code,
+              city: value.originCity || prev.origin.city,
+            },
+        destination: value.destination
+          ? value.destination
+          : {
+              code: value.destinationCode || prev.destination.code,
+              city: value.destinationCity || prev.destination.city,
+            },
+        departure: value.departure ? new Date(value.departure) : prev.departure,
+        returnDate: value.returnDate
+          ? new Date(value.returnDate)
+          : prev.returnDate,
+        adults: value.adults ?? prev.adults,
+        children: value.children ?? prev.children,
+        infants: value.infants ?? prev.infants,
+        travellers: value.travellers ?? prev.travellers,
+        cabin: value.cabin || prev.cabin,
+      }));
+
+      setTripType(value.returnDate ? "Round Trip" : "One Way");
+    }
   }, [value]);
 
   const handleSwap = () => {
@@ -134,7 +161,6 @@ const SearchSummary = ({ value, onModify }) => {
           <AutocompleteSelect
             type="airport"
             value={formData.origin}
-            size="summary"
             onSelect={(item) =>
               setFormData((prev) => ({ ...prev, origin: item }))
             }
@@ -157,7 +183,6 @@ const SearchSummary = ({ value, onModify }) => {
           <AutocompleteSelect
             type="airport"
             value={formData.destination}
-            size="summary"
             onSelect={(item) =>
               setFormData((prev) => ({ ...prev, destination: item }))
             }
